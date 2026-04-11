@@ -1,4 +1,4 @@
-Judgement Pipeline
+# Judgement Pipeline
 
 An agentic cut decision engine for video editing. Not a wrapper around existing tools — the algorithms are written from scratch.
 
@@ -28,8 +28,12 @@ Every decision is logged with its score. The planner reads that log on the next 
 | `pipeline.py` | Planner → Critic → Logger orchestrator |
 
 ## Dependencies
+
+```
 numpy
 ffmpeg (system)
+```
+
 That's it.
 
 ## Usage
@@ -45,7 +49,11 @@ python pipeline.py myvideo.mp4 --live
 
 # custom log
 python pipeline.py myvideo.mp4 --log project.jsonl
-Output
+```
+
+## Output
+
+```
 [1/4] loading audio...
       47.3s @ 22050Hz
 [2/4] building semantic index...
@@ -61,8 +69,13 @@ Output
   0.821 ████████████████    sentence_end (n=47)
   0.714 ██████████████      beat_aligned (n=83)
   0.502 ██████████          energy_spike (n=61)
-Adding a transcript
+```
+
+## Adding a transcript
+
 Any ASR output can be passed in to improve boundary detection:
+
+```python
 from aligner import build_chunks
 
 segments = [
@@ -70,3 +83,9 @@ segments = [
     {"start": 2.5, "end": 4.1, "text": "is that it changes everything"},
 ]
 chunks = build_chunks(y, sr, asr_segments=segments)
+```
+
+## Licence
+
+MIT — take it apart, build on it, just keep the credit.
+```
