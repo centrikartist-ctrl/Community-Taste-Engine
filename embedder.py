@@ -254,9 +254,15 @@ def pairing_score(
 
     Returns float in [-1, 1]; typical range for matched content: [0.3, 0.9].
     """
-    # Project audio to same dim as visual by chunking mel features
+    # Project audio to same dim as visual by mean-pooling mel features.
+    # np.array_split handles cases where n_aud < n_vis by producing empty
+    # sub-arrays; we replace their mean with 0.0 to avoid NaN.
     n_vis = len(visual_emb)
-    a = audio_emb[:n_vis]
+    parts = np.array_split(audio_emb, n_vis)
+    a = np.array(
+        [p.mean() if len(p) > 0 else 0.0 for p in parts],
+        dtype=np.float32,
+    )
     a = _l2_norm(a)
 
     dot = float(np.dot(a, visual_emb))
