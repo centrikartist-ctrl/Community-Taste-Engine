@@ -67,11 +67,24 @@ class Planner:
         # Will be updated by feedback loop
         self.rule_weights: dict[str, float] = {}
 
+    def save_weights(self, path: str):
+        """Persist rule weights to a JSON file."""
+        with open(path, "w") as f:
+            json.dump(self.rule_weights, f)
+
+    def load_weights(self, path: str):
+        """Load rule weights from a JSON file if it exists."""
+        p = Path(path)
+        if p.exists():
+            with p.open() as f:
+                self.rule_weights = json.load(f)
+
     def plan(
         self,
         chunks: list[Chunk],
         beat_times: np.ndarray,
         bpm: float,
+        source: str = "",
     ) -> list[CutDecision]:
         decisions = []
 
@@ -136,7 +149,7 @@ class Planner:
 
             if confidence >= self.threshold:
                 cut_id = hashlib.md5(
-                    f"{curr.start:.4f}{curr.boundary_type}".encode()
+                    f"{source}{curr.start:.4f}{curr.boundary_type}".encode()
                 ).hexdigest()[:10]
 
                 decisions.append(CutDecision(
@@ -231,7 +244,8 @@ class Critic:
                 v_emb = visual_embedding(video_path, decision.timestamp, decision.timestamp + 2.0)
                 if v_emb is not None:
                     pair = pairing_score(a_emb, v_emb)
-            except Exception:
+            except (FileNotFoundError, subprocess.CalledProcessError, ValueError) as exc:
+                print(f"[critic] pairing score failed: {exc}")
                 pair = -1.0
 
         # ── Final composite ──────────────────────────────────────────────
@@ -313,6 +327,7 @@ class Logger:
             for rule in reason.split("|"):
                 rule = rule.strip()
                 if rule:
+                    rule = rule.split("(")[0]
                     buckets[rule].append(final)
 
         result = {}
@@ -389,7 +404,9 @@ def run(
     planner = Planner(confidence_threshold=min_confidence)
     critic = Critic()
 
-    # ── Load feedback from previous runs and update planner weights ──────
+    # ── Load saved weights and feedback from previous runs ───────────────
+    weights_path = str(Path(log_path).with_suffix(".weights.json"))
+    planner.load_weights(weights_path)
     previous_perf = logger.rule_performance()
     if previous_perf:
         avg_scores = {rule: data["avg"] for rule, data in previous_perf.items()}
@@ -409,7 +426,7 @@ def run(
 
     # ── Stage 3: Plan cuts ───────────────────────────────────────────────
     print("[3/4] planning cuts...")
-    decisions = planner.plan(chunks, beat_times, bpm)
+    decisions = planner.plan(chunks, beat_times, bpm, source=video_path)
     print(f"      {len(decisions)} candidates (threshold={min_confidence})")
 
     # ── Stage 4: Execute + critique + log ────────────────────────────────
@@ -427,6 +444,12 @@ def run(
             f"r={score.rhythm_score:.2f} s={score.speech_score:.2f} "
             f"e={score.energy_score:.2f}  {d.reason}"
         )
+
+    # ── Persist updated weights ──────────────────────────────────────────
+    avg_scores = {rule: data["avg"] for rule, data in logger.rule_performance().items()}
+    if avg_scores:
+        planner.update_weights(avg_scores)
+    planner.save_weights(weights_path)
 
     # ── Summary ──────────────────────────────────────────────────────────
     print("\n[rule performance across all runs]")
