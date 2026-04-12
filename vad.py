@@ -22,7 +22,11 @@ from stft import stft, frames_to_time
 
 def short_time_energy(y: np.ndarray, frame_length: int, hop_length: int) -> np.ndarray:
     """RMS energy per frame."""
+    if frame_length <= 0 or hop_length <= 0:
+        raise ValueError("frame_length and hop_length must be positive")
     n = len(y)
+    if n < frame_length:
+        return np.zeros(0, dtype=np.float32)
     n_frames = 1 + (n - frame_length) // hop_length
     out = np.zeros(n_frames, dtype=np.float32)
     for i in range(n_frames):
@@ -33,7 +37,11 @@ def short_time_energy(y: np.ndarray, frame_length: int, hop_length: int) -> np.n
 
 def zero_crossing_rate(y: np.ndarray, frame_length: int, hop_length: int) -> np.ndarray:
     """ZCR per frame: number of sign changes / frame_length."""
+    if frame_length <= 0 or hop_length <= 0:
+        raise ValueError("frame_length and hop_length must be positive")
     n = len(y)
+    if n < frame_length:
+        return np.zeros(0, dtype=np.float32)
     n_frames = 1 + (n - frame_length) // hop_length
     out = np.zeros(n_frames, dtype=np.float32)
     for i in range(n_frames):
@@ -57,7 +65,11 @@ def spectral_entropy(
     Low entropy = energy concentrated (speech / tonal).
     High entropy = energy spread (noise / silence).
     """
+    if frame_length <= 0 or hop_length <= 0 or n_fft <= 0:
+        raise ValueError("frame_length, hop_length, and n_fft must be positive")
     S = stft(y, n_fft=n_fft, hop_length=hop_length)
+    if S.size == 0:
+        return np.zeros(0, dtype=np.float32)
     power = S ** 2
     # Normalise each frame to a probability distribution
     row_sums = power.sum(axis=1, keepdims=True)
@@ -71,6 +83,8 @@ def spectral_entropy(
 # ── Decision logic ────────────────────────────────────────────────────────────
 
 def _normalise(x: np.ndarray) -> np.ndarray:
+    if len(x) == 0:
+        return x
     lo, hi = x.min(), x.max()
     if hi == lo:
         return np.zeros_like(x)
@@ -95,11 +109,18 @@ def detect_speech(
       entropy_thresh : maximum normalised entropy to be considered speech
                        (speech is low-entropy; noise/silence is high-entropy)
     """
+    if sr <= 0:
+        raise ValueError(f"sr must be positive, got {sr}")
+    if len(y) == 0 or len(y) < frame_length:
+        return []
+
     ste = _normalise(short_time_energy(y, frame_length, hop_length))
     entropy = _normalise(spectral_entropy(y, sr, frame_length, hop_length))
 
     # Align lengths (spectral entropy may differ by a frame)
     min_len = min(len(ste), len(entropy))
+    if min_len == 0:
+        return []
     ste = ste[:min_len]
     entropy = entropy[:min_len]
 

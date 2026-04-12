@@ -42,7 +42,11 @@ def onset_strength(
     -------
     ose : (n_frames - 1,) float32 onset strength per frame
     """
+    if n_fft <= 0 or hop_length <= 0:
+        raise ValueError("n_fft and hop_length must be positive")
     S = stft(y, n_fft=n_fft, hop_length=hop_length)
+    if S.shape[0] < 2:
+        return np.zeros(0, dtype=np.float32)
 
     # Log magnitude compression — perceptually weights quiet onsets
     S_log = np.log1p(log_scale * S)
@@ -55,6 +59,8 @@ def onset_strength(
 
     # Sum across frequency bins → scalar per frame
     ose = diff.sum(axis=1).astype(np.float32)
+    if len(ose) == 0:
+        return ose
 
     # Normalise to [0, 1] for stability across inputs
     peak = ose.max()
@@ -100,6 +106,8 @@ def pick_peaks(
     onset_frames : integer frame indices of detected onsets
     """
     n = len(ose)
+    if n == 0:
+        return np.zeros(0, dtype=int)
     peaks = []
     last_peak = -wait - 1
 

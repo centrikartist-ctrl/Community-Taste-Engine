@@ -47,7 +47,13 @@ def estimate_period(
     -------
     period_frames : int — estimated IBI in frames
     """
+    if sr <= 0 or hop_length <= 0:
+        raise ValueError("sr and hop_length must be positive")
+    if min_bpm <= 0 or max_bpm <= 0 or min_bpm >= max_bpm:
+        raise ValueError("Require 0 < min_bpm < max_bpm")
     n = len(ose)
+    if n == 0:
+        return 1
 
     # Full autocorrelation (only positive lags needed)
     ac_full = np.correlate(ose, ose, mode="full")
@@ -89,6 +95,9 @@ def _dp_beats(
     alpha  : tempo tightness (400 = Ellis default)
     """
     n = len(ose)
+    if n == 0:
+        return np.zeros(0, dtype=int)
+    period = max(int(period), 1)
 
     # Cumulative score and backtrace pointer
     score = ose.copy().astype(np.float64)
@@ -150,7 +159,14 @@ def track_beats(
     beat_times : np.ndarray of beat positions in seconds
     bpm        : estimated tempo in BPM
     """
+    if sr <= 0 or hop_length <= 0 or n_fft <= 0:
+        raise ValueError("sr, hop_length, and n_fft must be positive")
+    if min_bpm <= 0 or max_bpm <= 0 or min_bpm >= max_bpm:
+        raise ValueError("Require 0 < min_bpm < max_bpm")
+
     ose = onset_strength(y, sr, n_fft=n_fft, hop_length=hop_length)
+    if len(ose) == 0:
+        return np.zeros(0, dtype=np.float64), 0.0
     period = estimate_period(ose, sr, hop_length, min_bpm=min_bpm, max_bpm=max_bpm)
 
     beat_frames = _dp_beats(ose, period, alpha=alpha)

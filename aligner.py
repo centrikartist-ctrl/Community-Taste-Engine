@@ -36,6 +36,10 @@ class Chunk:
 
 
 def _frame_energy(y: np.ndarray, frame_len: int, hop: int) -> np.ndarray:
+    if frame_len <= 0 or hop <= 0:
+        raise ValueError("frame_len and hop must be positive")
+    if len(y) < frame_len:
+        return np.zeros(0, dtype=np.float32)
     n_frames = 1 + (len(y) - frame_len) // hop
     energy = np.zeros(n_frames, dtype=np.float32)
     for i in range(n_frames):
@@ -114,6 +118,11 @@ def build_chunks(
     -------
     List of Chunk objects ordered by start time.
     """
+    if sr <= 0:
+        raise ValueError(f"sr must be positive, got {sr}")
+    if len(y) == 0:
+        return []
+
     speech_regions = detect_speech(y, sr, frame_length=frame_length, hop_length=hop_length)
 
     # Build a set of boundary times: start/end of each speech region
@@ -144,6 +153,8 @@ def build_chunks(
 
     boundary_times.append(len(y) / sr)
     boundary_times = sorted(set(round(t, 4) for t in boundary_times))
+    if len(boundary_times) < 2:
+        boundary_times = [0.0, len(y) / sr]
 
     # Build speech lookup: which (start, end) pairs cover a given time
     def in_speech(t: float) -> bool:
@@ -155,6 +166,21 @@ def build_chunks(
     # Build Chunk list from boundary pairs
     chunks = []
     global_energy = _frame_energy(y, frame_length, hop_length)
+    if len(global_energy) == 0:
+        dur = len(y) / sr
+        rms = float(np.sqrt(np.mean(y ** 2)))
+        return [
+            Chunk(
+                start=0.0,
+                end=dur,
+                duration=dur,
+                mean_energy=rms,
+                peak_energy=rms,
+                is_speech=False,
+                boundary_type="silence",
+                tags=["low_energy"] if rms < 0.01 else [],
+            )
+        ]
 
     for i in range(len(boundary_times) - 1):
         t0 = boundary_times[i]
@@ -163,8 +189,8 @@ def build_chunks(
             continue
 
         # Energy for this chunk
-        f0 = int(t0 * sr / hop_length)
-        f1 = int(t1 * sr / hop_length)
+        f0 = max(0, min(len(global_energy) - 1, int(t0 * sr / hop_length)))
+        f1 = max(f0 + 1, min(len(global_energy), int(t1 * sr / hop_length)))
         chunk_energy = global_energy[f0:f1] if f1 > f0 else np.array([0.0])
 
         mean_e = float(chunk_energy.mean())
