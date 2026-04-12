@@ -403,3 +403,228 @@ class TestWeightPersistence:
         planner = Planner()
         planner.load_weights("/tmp/nonexistent_weights_xyz.json")
         assert planner.rule_weights == {}
+
+
+class TestEdgeCases:
+    def test_short_audio_build_chunks_graceful(self):
+        from aligner import build_chunks
+        y = np.zeros(128, dtype=np.float32)
+        chunks = build_chunks(y, SR)
+        assert isinstance(chunks, list)
+
+    def test_short_audio_vad_returns_empty(self):
+        from vad import detect_speech
+        y = np.zeros(128, dtype=np.float32)
+        regions = detect_speech(y, SR)
+        assert regions == []
+
+    def test_short_audio_beat_tracker_graceful(self):
+        from beat_tracker import track_beats
+        y = np.zeros(128, dtype=np.float32)
+        beat_times, bpm = track_beats(y, SR)
+        assert isinstance(beat_times, np.ndarray)
+        assert bpm >= 0.0
+
+    def test_run_rejects_invalid_confidence(self):
+        from pipeline import run
+        with pytest.raises(ValueError):
+            run("whatever.wav", min_confidence=2.0)
+
+
+class TestCriticCaching:
+    def test_score_uses_audio_cache_without_reload(self, monkeypatch):
+        from pipeline import Critic, CutDecision
+        from aligner import Chunk
+
+        def _boom(_):
+            raise AssertionError("load_audio should not be called when audio_cache is provided")
+
+        monkeypatch.setattr("pipeline.load_audio", _boom)
+
+        monkeypatch.setattr("pipeline.audio_embedding", lambda *_args, **_kwargs: np.ones(32, dtype=np.float32))
+        monkeypatch.setattr("pipeline.visual_embedding", lambda *_args, **_kwargs: np.ones(32, dtype=np.float32))
+
+        critic = Critic()
+        chunks = [
+            Chunk(start=0.0, end=0.5, duration=0.5, mean_energy=0.01,
+                  peak_energy=0.02, is_speech=False, boundary_type="silence"),
+            Chunk(start=0.5, end=1.0, duration=0.5, mean_energy=0.05,
+                  peak_energy=0.08, is_speech=True, boundary_type="sentence_end"),
+        ]
+        decision = CutDecision(
+            cut_id="cache00001",
+            timestamp=0.5,
+            reason="sentence_end",
+            confidence=0.8,
+            chunk_idx=1,
+            features={},
+        )
+
+        y = np.zeros(SR * 2, dtype=np.float32)
+        score = critic.score(
+            decision,
+            chunks,
+            beat_times=np.array([0.5]),
+            video_path="fake.mp4",
+            audio_cache=(y, SR),
+        )
+        assert 0.0 <= score.final_score <= 1.0
+
+    def test_score_raises_when_visual_embedding_fails(self, monkeypatch):
+        from pipeline import Critic, CutDecision
+        from aligner import Chunk
+
+        monkeypatch.setattr("pipeline.audio_embedding", lambda *_args, **_kwargs: np.ones(32, dtype=np.float32))
+        monkeypatch.setattr("pipeline.visual_embedding", lambda *_args, **_kwargs: None)
+
+        critic = Critic()
+        chunks = [
+            Chunk(start=0.0, end=0.5, duration=0.5, mean_energy=0.01,
+                  peak_energy=0.02, is_speech=False, boundary_type="silence"),
+            Chunk(start=0.5, end=1.0, duration=0.5, mean_energy=0.05,
+                  peak_energy=0.08, is_speech=True, boundary_type="sentence_end"),
+        ]
+        decision = CutDecision(
+            cut_id="cache00002",
+            timestamp=0.5,
+            reason="sentence_end",
+            confidence=0.8,
+            chunk_idx=1,
+            features={},
+        )
+
+        with pytest.raises(RuntimeError, match="visual embedding failed"):
+            critic.score(
+                decision,
+                chunks,
+                beat_times=np.array([0.5]),
+                video_path="fake.mp4",
+                audio_cache=(np.zeros(SR * 2, dtype=np.float32), SR),
+            )
+
+
+class TestExecutor:
+    def test_execute_cut_uses_capcut_compose(self, monkeypatch):
+        from pipeline import execute_cut, CutDecision
+        from capcut_automation import ComposeResult
+
+        calls = []
+
+        def _fake_compose(self, request, timeout=120):
+            calls.append((request, timeout))
+            os.makedirs(request.output_dir, exist_ok=True)
+            with open(os.path.join(request.output_dir, "render.mp4"), "wb") as f:
+                f.write(b"00")
+            return ComposeResult(
+                command=["capcut-cli", "compose"],
+                cwd=request.output_dir,
+                duration_seconds=request.duration_seconds,
+                sound_id=request.sound_id,
+                clip_ids=request.clip_ids,
+                started_at=0.0,
+                finished_at=0.1,
+                elapsed_seconds=0.1,
+            )
+
+        monkeypatch.setattr("capcut_automation.CapCutAutomation.compose", _fake_compose)
+
+        decision = CutDecision(
+            cut_id="exec000001",
+            timestamp=1.25,
+            reason="sentence_end",
+            confidence=0.9,
+            chunk_idx=1,
+            features={},
+        )
+
+        with tempfile.TemporaryDirectory() as out_dir:
+            out = execute_cut(
+                "input.mp4",
+                decision,
+                output_dir=out_dir,
+                sound_id="sound_123",
+                clip_ids=["clip_a", "clip_b"],
+                duration_seconds=24,
+            )
+            assert out.endswith("render.mp4")
+            assert calls, "expected compose call"
+            req = calls[0][0]
+            assert req.sound_id == "sound_123"
+            assert req.clip_ids == ["clip_a", "clip_b"]
+            assert req.duration_seconds == 24
+
+    def test_execute_cut_requires_capcut_cli(self, monkeypatch):
+        from pipeline import execute_cut, CutDecision
+        from capcut_automation import CapCutDependencyError
+
+        def _raise_dep(*_args, **_kwargs):
+            raise CapCutDependencyError("capcut-cli not found in PATH")
+
+        monkeypatch.setattr("capcut_automation.CapCutAutomation.compose", _raise_dep)
+
+        decision = CutDecision(
+            cut_id="exec000002",
+            timestamp=1.25,
+            reason="sentence_end",
+            confidence=0.9,
+            chunk_idx=1,
+            features={},
+        )
+
+        with pytest.raises(CapCutDependencyError):
+            execute_cut("input.mp4", decision, output_dir="out", sound_id="sound_1", clip_ids=["clip_1"])
+
+    def test_execute_cut_requires_ids(self, monkeypatch):
+        from pipeline import execute_cut, CutDecision
+        from capcut_automation import CapCutInputError
+
+        decision = CutDecision(
+            cut_id="exec000003",
+            timestamp=1.25,
+            reason="sentence_end",
+            confidence=0.9,
+            chunk_idx=1,
+            features={},
+        )
+
+        with pytest.raises(CapCutInputError):
+            execute_cut("input.mp4", decision, output_dir="out")
+
+    def test_execute_cut_raises_when_no_output_created(self, monkeypatch):
+        from pipeline import execute_cut, CutDecision
+        from capcut_automation import ComposeResult
+
+        def _fake_compose(self, request, timeout=120):
+            os.makedirs(request.output_dir, exist_ok=True)
+            return ComposeResult(
+                command=["capcut-cli", "compose"],
+                cwd=request.output_dir,
+                duration_seconds=request.duration_seconds,
+                sound_id=request.sound_id,
+                clip_ids=request.clip_ids,
+                started_at=0.0,
+                finished_at=0.1,
+                elapsed_seconds=0.1,
+            )
+
+        monkeypatch.setattr("capcut_automation.CapCutAutomation.compose", _fake_compose)
+
+        decision = CutDecision(
+            cut_id="exec000004",
+            timestamp=1.25,
+            reason="sentence_end",
+            confidence=0.9,
+            chunk_idx=1,
+            features={},
+        )
+
+        with tempfile.TemporaryDirectory() as out_dir:
+            with pytest.raises(RuntimeError, match="no media artifacts"):
+                execute_cut(
+                    "input.mp4",
+                    decision,
+                    output_dir=out_dir,
+                    sound_id="sound_123",
+                    clip_ids=["clip_a"],
+                    duration_seconds=24,
+                )

@@ -13,9 +13,11 @@ import json
 import time
 import hashlib
 import subprocess
+import argparse
+import logging
 from pathlib import Path
 from dataclasses import dataclass, asdict
-from typing import Optional
+from typing import Optional, Callable, Any
 
 import numpy as np
 
@@ -23,6 +25,11 @@ from audio import load as load_audio
 from beat_tracker import track_beats
 from aligner import build_chunks, Chunk
 from embedder import audio_embedding, visual_embedding, pairing_score
+from capcut_automation import CapCutAutomation, ComposeRequest, CapCutCommandError
+
+
+LOGGER = logging.getLogger("judgement.pipeline")
+MEDIA_SUFFIXES = {".mp4", ".mov", ".mkv", ".webm", ".m4v", ".avi", ".wav", ".mp3", ".aac"}
 
 
 # ══════════════════════════════════════════════════════════════════
@@ -199,6 +206,7 @@ class Critic:
         chunks: list[Chunk],
         beat_times: np.ndarray,
         video_path: Optional[str] = None,
+        audio_cache: Optional[tuple[np.ndarray, int]] = None,
     ) -> CriticScore:
 
         chunk = chunks[decision.chunk_idx]
@@ -236,17 +244,19 @@ class Critic:
         # ── Pairing score (audio-visual) ─────────────────────────────────
         pair = -1.0
         if video_path:
-            try:
+            if audio_cache is not None:
+                y_seg, sr = audio_cache
+            else:
                 y_seg, sr = load_audio(video_path)
-                s = int(decision.timestamp * sr)
-                e = min(int((decision.timestamp + 2.0) * sr), len(y_seg))
-                a_emb = audio_embedding(y_seg[s:e], sr)
-                v_emb = visual_embedding(video_path, decision.timestamp, decision.timestamp + 2.0)
-                if v_emb is not None:
-                    pair = pairing_score(a_emb, v_emb)
-            except (FileNotFoundError, subprocess.CalledProcessError, ValueError) as exc:
-                print(f"[critic] pairing score failed: {exc}")
-                pair = -1.0
+            s = int(decision.timestamp * sr)
+            e = min(int((decision.timestamp + 2.0) * sr), len(y_seg))
+            if e <= s:
+                raise ValueError("empty audio segment for pairing")
+            a_emb = audio_embedding(y_seg[s:e], sr)
+            v_emb = visual_embedding(video_path, decision.timestamp, decision.timestamp + 2.0)
+            if v_emb is None:
+                raise RuntimeError("visual embedding failed")
+            pair = pairing_score(a_emb, v_emb)
 
         # ── Final composite ──────────────────────────────────────────────
         if pair >= 0:
@@ -296,6 +306,20 @@ class Logger:
         with self.path.open("a") as f:
             f.write(json.dumps(record) + "\n")
 
+    def write_event(self, source: str, stage: str, message: str, details: Optional[dict] = None):
+        record = {
+            "ts": round(time.time(), 3),
+            "source": source,
+            "event": {
+                "stage": stage,
+                "message": message,
+            },
+        }
+        if details:
+            record["event"]["details"] = details
+        with self.path.open("a") as f:
+            f.write(json.dumps(record) + "\n")
+
     def load(self) -> list[dict]:
         if not self.path.exists():
             return []
@@ -307,6 +331,7 @@ class Logger:
                     try:
                         records.append(json.loads(line))
                     except json.JSONDecodeError:
+                        LOGGER.warning("skipping malformed JSONL record in %s", self.path)
                         continue
         return records
 
@@ -354,24 +379,49 @@ class Logger:
 
 
 # ══════════════════════════════════════════════════════════════════
-# EXECUTOR (stub — replace with actual capcut-cli calls)
+# EXECUTOR
 # ══════════════════════════════════════════════════════════════════
 
-def execute_cut(video_path: str, decision: CutDecision, output_dir: str = ".") -> str:
+def execute_cut(
+    video_path: str,
+    decision: CutDecision,
+    output_dir: str = ".",
+    sound_id: Optional[str] = None,
+    clip_ids: Optional[list[str]] = None,
+    duration_seconds: int = 30,
+) -> str:
     """
-    Call capcut-cli to make the cut.
-    Replace the print/stub with actual subprocess call.
+    Execute capcut-cli compose using explicit library asset IDs.
+
+    Required inputs can be passed directly or via environment:
+      CAPCUT_SOUND_ID
+      CAPCUT_CLIP_ID or CAPCUT_CLIP_IDS (comma-separated)
     """
-    out_path = f"{output_dir}/cut_{decision.cut_id}.mp4"
-    cmd = [
-        "capcut-cli", "cut",
-        "--input", video_path,
-        "--at", f"{decision.timestamp:.4f}",
-        "--output", out_path,
-    ]
-    print(f"[executor] {' '.join(cmd)}")
-    # subprocess.run(cmd, check=True)
-    return out_path
+    del video_path  # Kept for API compatibility with existing run() callers.
+
+    if duration_seconds <= 0:
+        raise ValueError("duration_seconds must be positive")
+
+    resolved_sound, resolved_clips = CapCutAutomation.resolve_ids(sound_id=sound_id, clip_ids=clip_ids)
+    request = ComposeRequest(
+        sound_id=resolved_sound,
+        clip_ids=resolved_clips,
+        duration_seconds=duration_seconds,
+        output_dir=output_dir,
+    )
+    LOGGER.info("[executor] compose cut_id=%s sound=%s clips=%d", decision.cut_id, resolved_sound, len(resolved_clips))
+    output_root = Path(output_dir)
+    before = {p.name for p in output_root.iterdir()} if output_root.exists() else set()
+    CapCutAutomation().compose(request, timeout=120)
+
+    existing_media = [p for p in output_root.iterdir() if p.is_file() and p.suffix.lower() in MEDIA_SUFFIXES]
+    new_media = [p for p in existing_media if p.name not in before]
+    selected = new_media or existing_media
+    if not selected:
+        raise RuntimeError("compose completed but no media artifacts were found in output directory")
+
+    selected.sort(key=lambda p: p.stat().st_mtime, reverse=True)
+    return str(selected[0])
 
 
 # ══════════════════════════════════════════════════════════════════
@@ -384,6 +434,10 @@ def run(
     output_dir: str = ".",
     min_confidence: float = 0.35,
     dry_run: bool = True,
+    sound_id: Optional[str] = None,
+    clip_ids: Optional[list[str]] = None,
+    duration_seconds: int = 30,
+    progress_callback: Optional[Callable[[str, dict[str, Any]], None]] = None,
 ) -> list[CutDecision]:
     """
     Full pipeline: ingest → plan → execute → critique → log.
@@ -400,9 +454,16 @@ def run(
     -------
     List of CutDecisions made this run.
     """
+    if min_confidence < 0.0 or min_confidence > 1.0:
+        raise ValueError("min_confidence must be in [0, 1]")
+
     logger = Logger(log_path)
     planner = Planner(confidence_threshold=min_confidence)
     critic = Critic()
+
+    def _emit(stage: str, **payload):
+        if progress_callback is not None:
+            progress_callback(stage, payload)
 
     # ── Load saved weights and feedback from previous runs ───────────────
     weights_path = str(Path(log_path).with_suffix(".weights.json"))
@@ -413,37 +474,80 @@ def run(
         planner.update_weights(avg_scores)
         print(f"[planner] loaded weights from {sum(d['count'] for d in previous_perf.values())} past decisions")
 
-    # ── Stage 1: Load audio ──────────────────────────────────────────────
-    print("[1/4] loading audio...")
-    y, sr = load_audio(video_path)
-    print(f"      {len(y)/sr:.1f}s @ {sr}Hz")
+    y = np.zeros(0, dtype=np.float32)
+    sr = 22050
+    decisions: list[CutDecision] = []
+    resolved_sound_id = sound_id
+    resolved_clip_ids = clip_ids
 
-    # ── Stage 2: Build semantic index ────────────────────────────────────
-    print("[2/4] building semantic index...")
-    chunks = build_chunks(y, sr)
-    beat_times, bpm = track_beats(y, sr)
-    print(f"      {len(chunks)} chunks, {len(beat_times)} beats, {bpm:.1f} BPM")
+    try:
+        # ── Stage 1: Load audio ──────────────────────────────────────────
+        print("[1/4] loading audio...")
+        _emit("loading_audio")
+        y, sr = load_audio(video_path)
+        print(f"      {len(y)/sr:.1f}s @ {sr}Hz")
 
-    # ── Stage 3: Plan cuts ───────────────────────────────────────────────
-    print("[3/4] planning cuts...")
-    decisions = planner.plan(chunks, beat_times, bpm, source=video_path)
-    print(f"      {len(decisions)} candidates (threshold={min_confidence})")
+        # ── Stage 2: Build semantic index ────────────────────────────────
+        print("[2/4] building semantic index...")
+        _emit("building_index")
+        chunks = build_chunks(y, sr)
+        beat_times, bpm = track_beats(y, sr)
+        print(f"      {len(chunks)} chunks, {len(beat_times)} beats, {bpm:.1f} BPM")
 
-    # ── Stage 4: Execute + critique + log ────────────────────────────────
-    print("[4/4] executing, critiquing, logging...")
-    for d in decisions:
-        if not dry_run:
-            execute_cut(video_path, d, output_dir)
+        # ── Stage 3: Plan cuts ───────────────────────────────────────────
+        print("[3/4] planning cuts...")
+        _emit("planning_cuts")
+        decisions = planner.plan(chunks, beat_times, bpm, source=video_path)
+        print(f"      {len(decisions)} candidates (threshold={min_confidence})")
 
-        score = critic.score(d, chunks, beat_times, video_path=video_path)
-        logger.write(video_path, d, score)
+        # ── Stage 4: Execute + critique + log ────────────────────────────
+        print("[4/4] executing, critiquing, logging...")
+        _emit("executing")
 
-        flag = "✓" if score.final_score >= 0.65 else "~" if score.final_score >= 0.45 else "✗"
-        print(
-            f"  {flag} {d.timestamp:7.3f}s  [{score.final_score:.2f}]  "
-            f"r={score.rhythm_score:.2f} s={score.speech_score:.2f} "
-            f"e={score.energy_score:.2f}  {d.reason}"
+        if not dry_run and (resolved_sound_id is None or not resolved_clip_ids):
+            raise ValueError(
+                "Live mode requires explicit sound/clip IDs from upstream orchestration. "
+                "Provide --sound-id and one or more --clip-id values (or CAPCUT_SOUND_ID/CAPCUT_CLIP_ID(S))."
+            )
+
+        for d in decisions:
+            if not dry_run:
+                execute_cut(
+                    video_path,
+                    d,
+                    output_dir,
+                    sound_id=resolved_sound_id,
+                    clip_ids=resolved_clip_ids,
+                    duration_seconds=duration_seconds,
+                )
+
+            score = critic.score(d, chunks, beat_times, video_path=video_path, audio_cache=(y, sr))
+            logger.write(video_path, d, score)
+
+            flag = "✓" if score.final_score >= 0.65 else "~" if score.final_score >= 0.45 else "✗"
+            print(
+                f"  {flag} {d.timestamp:7.3f}s  [{score.final_score:.2f}]  "
+                f"r={score.rhythm_score:.2f} s={score.speech_score:.2f} "
+                f"e={score.energy_score:.2f}  {d.reason}"
+            )
+
+    except CapCutCommandError as exc:
+        LOGGER.exception("pipeline failed")
+        logger.write_event(
+            video_path,
+            "error",
+            str(exc),
+            details={
+                "returncode": exc.returncode,
+                "stdout": (exc.stdout or "")[:500],
+                "stderr": (exc.stderr or "")[:500],
+            },
         )
+        raise
+    except Exception as exc:
+        LOGGER.exception("pipeline failed")
+        logger.write_event(video_path, "error", str(exc))
+        raise
 
     # ── Persist updated weights ──────────────────────────────────────────
     avg_scores = {rule: data["avg"] for rule, data in logger.rule_performance().items()}
@@ -453,8 +557,10 @@ def run(
 
     # ── Summary ──────────────────────────────────────────────────────────
     print("\n[rule performance across all runs]")
+    perf = logger.rule_performance()
+    _emit("complete", decisions=len(decisions), rules=len(perf))
     for rule, stats in sorted(
-        logger.rule_performance().items(),
+        perf.items(),
         key=lambda x: x[1]["avg"],
         reverse=True,
     ):
@@ -469,26 +575,30 @@ def run(
 # ══════════════════════════════════════════════════════════════════
 
 if __name__ == "__main__":
-    import sys
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+    )
 
-    args = sys.argv[1:]
-    if not args:
-        print("usage: python pipeline.py <video> [--log <path>] [--live]")
-        sys.exit(1)
+    parser = argparse.ArgumentParser(description="Judgement pipeline orchestrator")
+    parser.add_argument("video", help="Input media path")
+    parser.add_argument("--log", default="decisions.jsonl", help="Decision log path")
+    parser.add_argument("--output-dir", default=".", help="Output directory for generated cuts")
+    parser.add_argument("--min-confidence", type=float, default=0.35, help="Planner threshold in [0,1]")
+    parser.add_argument("--live", action="store_true", help="Enable capcut-cli compose execution")
+    parser.add_argument("--sound-id", default=None, help="capcut-cli sound id (or use CAPCUT_SOUND_ID)")
+    parser.add_argument("--clip-id", action="append", help="capcut-cli clip id (repeatable; or use CAPCUT_CLIP_ID(S))")
+    parser.add_argument("--duration-seconds", type=int, default=30, help="capcut-cli compose duration")
 
-    video = args[0]
-    log = "decisions.jsonl"
-    dry = True
+    cli_args = parser.parse_args()
 
-    i = 1
-    while i < len(args):
-        if args[i] == "--log" and i + 1 < len(args):
-            log = args[i + 1]
-            i += 2
-        elif args[i] == "--live":
-            dry = False
-            i += 1
-        else:
-            i += 1
-
-    run(video, log_path=log, dry_run=dry)
+    run(
+        cli_args.video,
+        log_path=cli_args.log,
+        output_dir=cli_args.output_dir,
+        min_confidence=cli_args.min_confidence,
+        dry_run=not cli_args.live,
+        sound_id=cli_args.sound_id,
+        clip_ids=cli_args.clip_id,
+        duration_seconds=cli_args.duration_seconds,
+    )

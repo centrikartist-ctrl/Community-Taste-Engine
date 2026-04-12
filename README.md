@@ -32,24 +32,105 @@ Every decision is logged with its score. The planner reads that log on the next 
 ```
 numpy
 ffmpeg (system)
+capcut-cli (system, external)
 ```
 
-That's it.
+Optional for development:
+
+```
+pytest
+```
 
 ## Usage
 
 ```bash
 pip install numpy
 
-# dry run — logs decisions, no cuts made
+# dry run — logs decisions, no clips generated
 python pipeline.py myvideo.mp4
 
-# live — calls capcut-cli
-python pipeline.py myvideo.mp4 --live
+# live — executes capcut-cli compose
+python pipeline.py myvideo.mp4 --live --sound-id sound_123 --clip-id clip_a --clip-id clip_b
 
 # custom log
 python pipeline.py myvideo.mp4 --log project.jsonl
+
+# tune threshold and output directory
+python pipeline.py myvideo.mp4 --min-confidence 0.45 --output-dir outputs
 ```
+
+In live mode, provide a CapCut sound + one or more clip IDs either by CLI args
+or by environment variables:
+
+```bash
+set CAPCUT_SOUND_ID=sound_123
+set CAPCUT_CLIP_ID=clip_a
+# or multiple:
+set CAPCUT_CLIP_IDS=clip_a,clip_b,clip_c
+```
+
+This repository is downstream of upstream capcut-cli discovery/import flows.
+If your agent stack already resolved IDs (for example through
+`pashpashpash/capcut-cli`), pass those IDs directly here.
+
+Compose duration is configurable:
+
+```bash
+python pipeline.py myvideo.mp4 --live --duration-seconds 30
+```
+
+## Licensing and dependency policy
+
+This repository does not bundle capcut-cli source or binaries.
+It integrates with a user-installed external tool via subprocess calls.
+
+As of this writing, upstream `pashpashpash/capcut-cli` does not declare a
+license in GitHub metadata. Treat it as an external dependency and verify
+upstream licensing terms before redistribution.
+
+## Agent integration
+
+The pipeline is designed to be called programmatically by agents:
+
+```python
+from pipeline import run
+
+decisions = run(
+      "myvideo.mp4",
+      log_path="decisions.jsonl",
+      dry_run=True,
+)
+```
+
+For progress streaming, provide a callback:
+
+```python
+def on_progress(stage, payload):
+      print(stage, payload)
+
+run("myvideo.mp4", progress_callback=on_progress)
+
+# live compose path for agents
+run(
+      "myvideo.mp4",
+      dry_run=False,
+      sound_id="sound_123",
+      clip_ids=["clip_a", "clip_b"],
+      duration_seconds=30,
+)
+```
+
+For headless agent operations, use the JSON shim:
+
+```bash
+# machine-readable environment/auth/dependency check
+python agent_capcut.py preflight
+
+# machine-readable compose invocation
+python agent_capcut.py compose --sound-id sound_123 --clip-id clip_a --clip-id clip_b --duration-seconds 30
+```
+
+OpenClaw integration details are documented in `OPENCLAW_AGENT_PLAN.md`.
 
 ## Output
 
