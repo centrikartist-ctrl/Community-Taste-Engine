@@ -1,0 +1,24 @@
+{
+  "ok": true,
+  "generated_at_unix": 1776035758,
+  "source_clip": {
+    "kind": "synthetic_ffmpeg_clip",
+    "duration_seconds": 7.4,
+    "resolution": "640x360",
+    "audio_hz": 22050
+  },
+  "pipeline": {
+    "dry_run": true,
+    "min_confidence": 0.35,
+    "decisions_count": 4,
+    "scored_count": 4,
+    "pairing_min": 0.0042,
+    "pairing_max": 0.0074,
+    "final_score_avg": 0.6233
+  },
+  "artifacts": {
+    "decision_log": "generated during run in a temp directory",
+    "report_json": "trust/ugly_success_report.json",
+    "report_md": "trust/ugly_success_report.md"
+  }
+}

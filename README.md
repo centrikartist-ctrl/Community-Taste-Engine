@@ -4,6 +4,22 @@ An agentic cut decision engine for video editing. Not a wrapper around existing 
 
 Most tools automate the mechanics of editing. This one tries to learn the judgment.
 
+## Trust pass
+
+For one visible, reproducible "ugly successful pass" in the repo, run:
+
+```bash
+python scripts/trust_ugly_pass.py
+```
+
+This generates:
+
+- `trust/ugly_success_report.json`
+- `trust/ugly_success_report.md`
+
+The trust pass verifies one end-to-end dry-run path:
+source clip generation -> judged pairing evaluation -> report output.
+
 ## What it does
 
 Analyses a video and proposes cut points based on three things:
@@ -142,9 +158,9 @@ OpenClaw integration details are documented in `OPENCLAW_AGENT_PLAN.md`.
 [3/4] planning cuts...
       12 candidates
 [4/4] executing, critiquing, logging...
-  ✓  12.440s  [0.78]  sentence_end|beat_aligned
-  ~  23.190s  [0.51]  energy_spike
-  ✗  31.020s  [0.31]  silence_gap
+       OK  12.440s  [0.78]  sentence_end|beat_aligned
+ WARN  23.190s  [0.51]  energy_spike
+      BAD  31.020s  [0.31]  silence_gap
 
 [rule performance across all runs]
   0.821 ████████████████    sentence_end (n=47)

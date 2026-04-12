@@ -248,12 +248,21 @@ class Critic:
                 y_seg, sr = audio_cache
             else:
                 y_seg, sr = load_audio(video_path)
-            s = int(decision.timestamp * sr)
-            e = min(int((decision.timestamp + 2.0) * sr), len(y_seg))
+
+            # Keep scoring window inside available media duration.
+            media_duration = len(y_seg) / sr if sr > 0 else 0.0
+            if media_duration <= 0:
+                raise ValueError("invalid media duration for pairing")
+
+            t_start = min(max(decision.timestamp, 0.0), max(0.0, media_duration - 0.05))
+            t_end = min(t_start + 2.0, media_duration)
+
+            s = int(t_start * sr)
+            e = min(int(t_end * sr), len(y_seg))
             if e <= s:
                 raise ValueError("empty audio segment for pairing")
             a_emb = audio_embedding(y_seg[s:e], sr)
-            v_emb = visual_embedding(video_path, decision.timestamp, decision.timestamp + 2.0)
+            v_emb = visual_embedding(video_path, t_start, t_end)
             if v_emb is None:
                 raise RuntimeError("visual embedding failed")
             pair = pairing_score(a_emb, v_emb)
@@ -524,9 +533,9 @@ def run(
             score = critic.score(d, chunks, beat_times, video_path=video_path, audio_cache=(y, sr))
             logger.write(video_path, d, score)
 
-            flag = "✓" if score.final_score >= 0.65 else "~" if score.final_score >= 0.45 else "✗"
+            flag = "OK" if score.final_score >= 0.65 else "WARN" if score.final_score >= 0.45 else "BAD"
             print(
-                f"  {flag} {d.timestamp:7.3f}s  [{score.final_score:.2f}]  "
+                f"  {flag:>4} {d.timestamp:7.3f}s  [{score.final_score:.2f}]  "
                 f"r={score.rhythm_score:.2f} s={score.speech_score:.2f} "
                 f"e={score.energy_score:.2f}  {d.reason}"
             )
@@ -564,7 +573,7 @@ def run(
         key=lambda x: x[1]["avg"],
         reverse=True,
     ):
-        bar = "█" * int(stats["avg"] * 20)
+        bar = "#" * int(stats["avg"] * 20)
         print(f"  {stats['avg']:.3f} {bar:<20} {rule} (n={stats['count']})")
 
     return decisions
