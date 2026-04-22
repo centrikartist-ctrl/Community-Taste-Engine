@@ -101,7 +101,9 @@
           "additionalProperties": {
             "type": [
               "number",
-              "integer"
+              "integer",
+              "boolean",
+              "string"
             ]
           }
         }

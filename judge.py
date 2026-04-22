@@ -218,7 +218,9 @@ def load_candidates(path: str) -> list[dict[str, Any]]:
 
 
 def write_judgements(path: str, payload: dict[str, Any]) -> None:
-    Path(path).write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+    output_path = Path(path)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    output_path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
 
 
 def judge_candidates(
@@ -670,6 +672,9 @@ def _candidate_theme_flags(
     link_count: int,
     attachment_count: int,
 ) -> dict[str, bool]:
+    explicit = candidate.get("signals") if isinstance(candidate.get("signals"), dict) else {}
+    explicit_risk_type = _signal_text(explicit, "risk_type")
+    explicit_source = _signal_text(explicit, "source")
     combined = " ".join(
         part.strip().lower()
         for part in (
@@ -677,25 +682,35 @@ def _candidate_theme_flags(
             text_value,
             str(candidate.get("description") or ""),
             str(source.get("channel_name") or ""),
+            explicit_source,
+            explicit_risk_type,
             " ".join(str(item) for item in source.get("external_urls", []) if item),
         )
         if part and part.strip()
     )
 
+    explicit_artifact_path = _signal_bool(explicit, "artifact_path")
+    explicit_no_artifact_path = _signal_bool(explicit, "no_artifact_path")
     artifact_path = (
-        link_count > 0
-        or attachment_count > 0
+        explicit_artifact_path
         or (
-            _contains_any(combined, ARTIFACT_TOKENS)
-            and not _contains_any(combined, NEGATED_ARTIFACT_TOKENS)
+            not explicit_no_artifact_path
+            and (
+                link_count > 0
+                or attachment_count > 0
+                or (
+                    _contains_any(combined, ARTIFACT_TOKENS)
+                    and not _contains_any(combined, NEGATED_ARTIFACT_TOKENS)
+                )
+            )
         )
     )
-    has_receipts = link_count > 0 or _contains_any(combined, RECEIPT_TOKENS)
-    actionable = _contains_any(combined, ACTIONABLE_TOKENS)
-    brand_risk = _contains_any(combined, BRAND_RISK_TOKENS)
-    bad_external_frame = _contains_any(combined, BAD_FRAME_TOKENS)
-    price_chatter = _contains_any(combined, PRICE_CHATTER_TOKENS)
-    vague_hype = _contains_any(combined, HYPE_TOKENS) and not has_receipts and not artifact_path
+    has_receipts = _signal_bool(explicit, "has_receipts") or link_count > 0 or _contains_any(combined, RECEIPT_TOKENS)
+    actionable = _signal_bool(explicit, "actionable") or _contains_any(combined, ACTIONABLE_TOKENS)
+    brand_risk = _signal_bool(explicit, "brand_risk") or explicit_risk_type in {"brand_frame", "brand_risk", "disclosure_spill"} or _contains_any(combined, BRAND_RISK_TOKENS)
+    bad_external_frame = _signal_bool(explicit, "bad_external_frame") or explicit_risk_type == "brand_frame" or _contains_any(combined, BAD_FRAME_TOKENS)
+    price_chatter = _signal_bool(explicit, "price_chatter") or explicit_risk_type == "price_chatter" or _contains_any(combined, PRICE_CHATTER_TOKENS)
+    vague_hype = _signal_bool(explicit, "vague_hype") or explicit_risk_type == "vague_hype" or (_contains_any(combined, HYPE_TOKENS) and not has_receipts and not artifact_path)
     clean_hook = bool(str(candidate.get("title") or "").strip()) and (
         ":" in str(candidate.get("title") or "")
         or has_receipts
@@ -727,6 +742,20 @@ def _contains_any(text: str, tokens: tuple[str, ...]) -> bool:
     return False
 
 
+def _signal_bool(signals: dict[str, Any], key: str) -> bool:
+    value = signals.get(key)
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str):
+        return value.strip().lower() in {"1", "true", "yes", "y", "on"}
+    return False
+
+
+def _signal_text(signals: dict[str, Any], key: str) -> str:
+    value = signals.get(key)
+    return value.strip().lower() if isinstance(value, str) else ""
+
+
 def _append_unique(items: list[str], value: str) -> None:
     if value not in items:
         items.append(value)
@@ -755,6 +784,8 @@ def _negative_signal_risk(key: str) -> str:
 
 
 def _normalise_signal(key: str, value: Any) -> float | None:
+    if isinstance(value, bool):
+        return None
     try:
         numeric = float(value)
     except (TypeError, ValueError):
@@ -847,7 +878,9 @@ def main() -> int:
 
         write_judgements(args.output, payload)
         if args.summary_output:
-            Path(args.summary_output).write_text(json.dumps(payload["summary"], indent=2) + "\n", encoding="utf-8")
+            summary_path = Path(args.summary_output)
+            summary_path.parent.mkdir(parents=True, exist_ok=True)
+            summary_path.write_text(json.dumps(payload["summary"], indent=2) + "\n", encoding="utf-8")
     except ValueError as exc:
         print(str(exc), file=sys.stderr)
         return 1

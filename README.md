@@ -198,32 +198,11 @@ The eval suite includes a Discord-style room batch that checks the intended orde
 brand-risk flag, tooling review, and concrete community idea should beat pure price chatter and vague hype.
 
 It also includes a room-derived anonymized batch under `evals/room_slice_redacted.eval.json`.
-That batch was distilled from a real Discord CSV export, but usernames and raw message bodies were not checked in.
-The committed fixture keeps only paraphrased candidate summaries and a source note so the eval stays useful without publishing private room text.
-*** Add File: c:\Users\ciara\OneDrive\Desktop\Projects\Judgement Pipeline\Community-Taste-Engine\evals\community_room.eval.json
-{
-      "name": "community_room_batch",
-      "description": "Discord-style room batch where brand-risk, tooling review, and a concrete community idea should beat price chatter and vague hype.",
-      "candidate_batch": "evals/community_room_batch.candidates.json",
-      "expected_top_candidate_ids": [
-            "brand_risk_flag",
-            "tooling_review"
-      ],
-      "expected_statuses": {
-            "brand_risk_flag": "strong_signal",
-            "tooling_review": "strong_signal",
-            "community_idea": "needs_work",
-            "price_chatter": "probably_noise",
-            "vague_hype": "probably_noise"
-      },
-      "must_rank_above": [
-            ["brand_risk_flag", "tooling_review"],
-            ["tooling_review", "community_idea"],
-            ["community_idea", "price_chatter"],
-            ["community_idea", "vague_hype"],
-            ["price_chatter", "vague_hype"]
-      ]
-}
+That batch was distilled from a real Discord CSV export, but usernames, message IDs, links, and raw message bodies were not checked in.
+The committed fixture keeps only paraphrased candidate summaries plus redacted `signals` metadata such as `source`, `has_receipts`, `actionable`, and `risk_type`.
+
+If you want to keep raw room messages for local calibration, store them under `evals/private/`.
+That path is gitignored so public CI only runs the redacted/paraphrased evals.
 
 Required for validation and test runs:
 

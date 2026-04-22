@@ -10,3 +10,4 @@ build/
 out/
 outputs/
 smoke_output/
+evals/private/

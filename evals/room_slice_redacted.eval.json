@@ -1,22 +1,22 @@
 {
   "name": "room_slice_redacted",
-  "description": "An anonymized real-room batch derived from a Discord CSV export. The strongest items are repo review, tooling artifact, and spill-risk discussion; because the export is metadata-thin, they land as needs-work rather than clean strong-signal wins.",
+  "description": "An anonymized real-room batch derived from a Discord CSV export. It follows the public redacted pattern: brand-risk flag, repo review, concrete community idea, price chatter, and vague hype without raw Discord identities or links.",
   "candidate_batch": "evals/room_slice_redacted.candidates.json",
   "expected_top_candidate_ids": [
-    "room_repo_review",
-    "room_tooling_artifact"
+    "room_brand_risk_flag",
+    "room_repo_review"
   ],
   "expected_statuses": {
-    "room_tooling_artifact": "needs_work",
-    "room_repo_review": "needs_work",
-    "room_spill_risk": "needs_work",
+    "room_brand_risk_flag": "strong_signal",
+    "room_repo_review": "strong_signal",
+    "room_community_idea": "unclear",
     "room_price_chatter": "probably_noise",
-    "room_vague_hype": "unclear"
+    "room_vague_hype": "probably_noise"
   },
   "must_rank_above": [
-    ["room_repo_review", "room_tooling_artifact"],
-    ["room_repo_review", "room_spill_risk"],
-    ["room_spill_risk", "room_price_chatter"],
-    ["room_spill_risk", "room_vague_hype"]
+    ["room_brand_risk_flag", "room_repo_review"],
+    ["room_repo_review", "room_community_idea"],
+    ["room_community_idea", "room_price_chatter"],
+    ["room_community_idea", "room_vague_hype"]
   ]
 }

@@ -145,10 +145,59 @@ def test_judge_candidates_emit_more_concrete_taste_language(tmp_path):
     assert by_id["price_chatter"]["status"] == "probably_noise"
 
 
+def test_redacted_signal_metadata_drives_room_style_reasons(tmp_path):
+    payload = judge_candidates(
+        [
+            {
+                "id": "room_brand_risk_flag",
+                "kind": "community_signal",
+                "title": "Brand-risk flag with clear cleanup action",
+                "text": "A community member flags that a public spill created reputational risk and asks for cleanup rather than debate.",
+                "signals": {
+                    "source": "discord_redacted",
+                    "has_receipts": True,
+                    "actionable": True,
+                    "risk_type": "brand_frame",
+                    "clarity": 0.78,
+                    "credibility": 0.82,
+                    "source_quality": 0.76,
+                    "relevance": 0.88,
+                    "uncertainty": 0.18,
+                },
+            },
+            {
+                "id": "room_price_chatter",
+                "kind": "community_signal",
+                "title": "Price prompt without any artifact path",
+                "text": "A member asks whether price moves soon, with no document or implementation detail.",
+                "signals": {
+                    "source": "discord_redacted",
+                    "no_artifact_path": True,
+                    "price_chatter": True,
+                    "risk_type": "price_chatter",
+                    "relevance": 0.18,
+                    "uncertainty": 0.82,
+                    "credibility": 0.08,
+                    "source_quality": 0.0,
+                },
+            },
+        ],
+        work_dir=str(tmp_path / "judge-work"),
+    )
+
+    by_id = {item["candidate_id"]: item for item in payload["judgements"]}
+    assert "Strong because it has receipts and a clean hook." in by_id["room_brand_risk_flag"]["reasons"]
+    assert "Important because it carries brand risk and needs a clear call." in by_id["room_brand_risk_flag"]["reasons"]
+    assert "Noise because it only has price energy, no artifact path." in by_id["room_price_chatter"]["risks"]
+    assert by_id["room_price_chatter"]["status"] == "probably_noise"
+    assert all("No artifact path is strong." != reason for reason in by_id["room_price_chatter"]["reasons"])
+    assert all("Actionable is strong." != reason for reason in by_id["room_brand_risk_flag"]["reasons"])
+
+
 def test_judge_cli_writes_output_file(tmp_path):
     candidates_path = tmp_path / "candidates.json"
-    output_path = tmp_path / "judgements.json"
-    summary_path = tmp_path / "summary.json"
+    output_path = tmp_path / "nested" / "reports" / "judgements.json"
+    summary_path = tmp_path / "nested" / "reports" / "summary.json"
     candidates_path.write_text(
         json.dumps(
             {
