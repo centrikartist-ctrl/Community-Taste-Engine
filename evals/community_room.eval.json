@@ -1,0 +1,22 @@
+{
+  "name": "community_room_batch",
+  "description": "Discord-style room batch where brand-risk, tooling review, and a concrete community idea should beat price chatter and vague hype.",
+  "candidate_batch": "evals/community_room_batch.candidates.json",
+  "expected_top_candidate_ids": [
+    "brand_risk_flag",
+    "tooling_review"
+  ],
+  "expected_statuses": {
+    "brand_risk_flag": "strong_signal",
+    "tooling_review": "strong_signal",
+    "community_idea": "strong_signal",
+    "price_chatter": "probably_noise",
+    "vague_hype": "probably_noise"
+  },
+  "must_rank_above": [
+    ["brand_risk_flag", "tooling_review"],
+    ["tooling_review", "community_idea"],
+    ["community_idea", "price_chatter"],
+    ["community_idea", "vague_hype"]
+  ]
+}

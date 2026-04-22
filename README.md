@@ -173,10 +173,57 @@ Every decision is logged with its score. The planner reads that log on the next 
 
 ## Dependencies
 
+Python:
+
+- Python 3.9+ for the judgement layer
+- `judge.py` lazy-loads the media pipeline, so pure community batches do not require NumPy or ffmpeg just to rank ideas/posts/claims
+- local video/media scoring still requires `numpy` and system `ffmpeg`
+
 ```
 numpy
 ffmpeg (system, only required for local video/media scoring)
 ```
+
+The media modules also use postponed annotations so the checked-in code stays compatible with Python 3.9+.
+
+## Evaluation
+
+Run the checked-in ranking evals with:
+
+```bash
+python scripts/evaluate_judgements.py
+```
+
+The eval suite includes a Discord-style room batch that checks the intended ordering:
+brand-risk flag, tooling review, and concrete community idea should beat pure price chatter and vague hype.
+
+It also includes a room-derived anonymized batch under `evals/room_slice_redacted.eval.json`.
+That batch was distilled from a real Discord CSV export, but usernames and raw message bodies were not checked in.
+The committed fixture keeps only paraphrased candidate summaries and a source note so the eval stays useful without publishing private room text.
+*** Add File: c:\Users\ciara\OneDrive\Desktop\Projects\Judgement Pipeline\Community-Taste-Engine\evals\community_room.eval.json
+{
+      "name": "community_room_batch",
+      "description": "Discord-style room batch where brand-risk, tooling review, and a concrete community idea should beat price chatter and vague hype.",
+      "candidate_batch": "evals/community_room_batch.candidates.json",
+      "expected_top_candidate_ids": [
+            "brand_risk_flag",
+            "tooling_review"
+      ],
+      "expected_statuses": {
+            "brand_risk_flag": "strong_signal",
+            "tooling_review": "strong_signal",
+            "community_idea": "needs_work",
+            "price_chatter": "probably_noise",
+            "vague_hype": "probably_noise"
+      },
+      "must_rank_above": [
+            ["brand_risk_flag", "tooling_review"],
+            ["tooling_review", "community_idea"],
+            ["community_idea", "price_chatter"],
+            ["community_idea", "vague_hype"],
+            ["price_chatter", "vague_hype"]
+      ]
+}
 
 Required for validation and test runs:
 

@@ -1,5 +1,5 @@
 {
-  "generated_at_unix": 1776870406,
+  "generated_at_unix": 1776879160,
   "summary": {
     "candidate_count": 5,
     "top_candidate_ids": [
@@ -8,19 +8,18 @@
     ],
     "status_counts": {
       "strong_signal": 2,
-      "unclear": 1,
-      "probably_noise": 2
+      "probably_noise": 3
     }
   },
   "judgements": [
     {
       "candidate_id": "claim_with_receipts",
       "kind": "claim",
-      "score": 0.9038,
+      "score": 0.9267,
       "status": "strong_signal",
       "reasons": [
-        "Credibility is strong.",
-        "Source quality is strong.",
+        "Strong because it has receipts and a clean hook.",
+        "The hook is easy to understand.",
         "There is enough context here to make a confident call."
       ],
       "risks": [
@@ -32,11 +31,11 @@
     {
       "candidate_id": "community_clip",
       "kind": "clip",
-      "score": 0.7229,
+      "score": 0.7526,
       "status": "strong_signal",
       "reasons": [
-        "Clarity is strong.",
-        "Community support is strong.",
+        "The hook is easy to understand.",
+        "The room is already giving it real attention.",
         "There is enough context here to make a confident call."
       ],
       "risks": [
@@ -48,31 +47,31 @@
     {
       "candidate_id": "rough_prompt",
       "kind": "idea",
-      "score": 0.3619,
-      "status": "unclear",
+      "score": 0.2954,
+      "status": "probably_noise",
       "reasons": [
-        "Clarity is strong.",
-        "Novelty is strong."
+        "The hook is easy to understand.",
+        "There is a fresh angle here worth tracking."
       ],
       "risks": [
-        "The community has not really engaged with it yet.",
-        "Uncertainty is high.",
+        "The room has not really validated it yet.",
+        "Risky because the claim is still vague and under-evidenced.",
         "The submission needs more context before it should drive action."
       ],
-      "recommended_action": "clarify",
+      "recommended_action": "pass",
       "title": "Interesting prompt, weak explanation"
     },
     {
       "candidate_id": "stale_link",
       "kind": "link",
-      "score": 0.3428,
+      "score": 0.2763,
       "status": "probably_noise",
       "reasons": [
-        "Clarity is strong."
+        "The hook is easy to understand."
       ],
       "risks": [
-        "The community has not really engaged with it yet.",
-        "Uncertainty is high.",
+        "The room has not really validated it yet.",
+        "Risky because the claim is still vague and under-evidenced.",
         "The submission needs more context before it should drive action."
       ],
       "recommended_action": "pass",
@@ -81,14 +80,14 @@
     {
       "candidate_id": "noise_post",
       "kind": "meme",
-      "score": 0.3135,
+      "score": 0.2335,
       "status": "probably_noise",
       "reasons": [
-        "Clarity is strong."
+        "The hook is easy to understand."
       ],
       "risks": [
-        "The community has not really engaged with it yet.",
-        "Uncertainty is high.",
+        "The room has not really validated it yet.",
+        "Risky because the claim is still vague and under-evidenced.",
         "The submission needs more context before it should drive action."
       ],
       "recommended_action": "pass",

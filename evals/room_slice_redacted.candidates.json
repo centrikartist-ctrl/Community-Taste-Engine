@@ -1,0 +1,116 @@
+{
+  "candidates": [
+    {
+      "id": "room_tooling_artifact",
+      "kind": "idea",
+      "title": "Structured tooling input with source, pairing, failure note, and bottleneck",
+      "text": "A room member provided one real source clip, one real sound candidate with evidence it was moving, one argued pairing, one exact failure note, and one tooling question that exposed the real bottleneck.",
+      "description": "Paraphrased from a real Discord export for privacy. It condenses a message that presented source, sound, pairing, failure note, and tooling question in one structured package.",
+      "source": {
+        "platform": "discord",
+        "channel_name": "room-redacted",
+        "author_name": "Member A",
+        "external_urls": []
+      },
+      "community": {
+        "reaction_count": 0,
+        "reply_count": 0,
+        "attachment_count": 0,
+        "link_count": 0,
+        "trusted_submitter": false
+      }
+    },
+    {
+      "id": "room_repo_review",
+      "kind": "claim",
+      "title": "Repo review says the basis is real, not vapor",
+      "text": "A reviewer looked at the public repository and called out beat tracking, onset, embeddings, alignment, VAD, and pipeline glue. The judgement was that it already had real bones and a legitimate basis rather than vapor, even if quality still needed inspection.",
+      "description": "Paraphrased from a real Discord export for privacy. It condenses a message reviewing the repository as a concrete technical basis instead of empty abstraction.",
+      "source": {
+        "platform": "discord",
+        "channel_name": "room-redacted",
+        "author_name": "Member B",
+        "external_urls": [
+          "https://github.com/centrikartist-ctrl/Community-Taste-Engine"
+        ]
+      },
+      "community": {
+        "reaction_count": 0,
+        "reply_count": 0,
+        "attachment_count": 0,
+        "link_count": 1,
+        "trusted_submitter": false
+      }
+    },
+    {
+      "id": "room_spill_risk",
+      "kind": "claim",
+      "title": "Operational-risk flag: disclosure spill was cleaned but the trust hit is real",
+      "text": "A cluster of room messages focused on accidental disclosure of command prompts and folder directories, cleanup after the spill, whether screenshots of the spill should circulate, and the trust hit that follows a privacy breach.",
+      "description": "Paraphrased from multiple adjacent Discord messages for privacy. It condenses a real disclosure-risk discussion from the export.",
+      "source": {
+        "platform": "discord",
+        "channel_name": "room-redacted",
+        "author_name": "Member C",
+        "external_urls": []
+      },
+      "community": {
+        "reaction_count": 0,
+        "reply_count": 4,
+        "attachment_count": 0,
+        "link_count": 0,
+        "trusted_submitter": false
+      },
+      "signals": {
+        "relevance": 0.78,
+        "uncertainty": 0.42
+      }
+    },
+    {
+      "id": "room_price_chatter",
+      "kind": "meme",
+      "title": "Are you moving the price of your coin anytime soon?",
+      "text": "A member asked whether the coin price would be moved soon. The message contains no document, no repository review, no clip, and no implementation detail.",
+      "description": "Paraphrased from a real Discord export for privacy. It condenses a short price-focused message with no artifact path.",
+      "source": {
+        "platform": "discord",
+        "channel_name": "room-redacted",
+        "author_name": "Member D",
+        "external_urls": []
+      },
+      "community": {
+        "reaction_count": 0,
+        "reply_count": 0,
+        "attachment_count": 0,
+        "link_count": 0,
+        "trusted_submitter": false
+      },
+      "signals": {
+        "relevance": 0.18,
+        "uncertainty": 0.82,
+        "credibility": 0.08,
+        "source_quality": 0.0
+      }
+    },
+    {
+      "id": "room_vague_hype",
+      "kind": "claim",
+      "title": "When do we see what you are building? soon I hope.",
+      "text": "A member asked when the work would be visible soon, but gave no receipts, no artifact path, and no concrete next step.",
+      "description": "Paraphrased from a real Discord export for privacy. It condenses a short anticipation post with no evidence attached.",
+      "source": {
+        "platform": "discord",
+        "channel_name": "room-redacted",
+        "author_name": "Member E",
+        "external_urls": []
+      },
+      "community": {
+        "reaction_count": 0,
+        "reply_count": 0,
+        "attachment_count": 0,
+        "link_count": 0,
+        "trusted_submitter": false
+      }
+    }
+  ]
+}

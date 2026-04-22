@@ -1,6 +1,6 @@
 {
   "ok": true,
-  "generated_at_unix": 1776870543,
+  "generated_at_unix": 1776879163,
   "source_example": {
     "candidates": "examples/candidates.json",
     "judgements": "examples/judgements.json"
@@ -18,11 +18,11 @@
     {
       "candidate_id": "claim_with_receipts",
       "kind": "claim",
-      "score": 0.9038,
+      "score": 0.9267,
       "status": "strong_signal",
       "reasons": [
-        "Credibility is strong.",
-        "Source quality is strong.",
+        "Strong because it has receipts and a clean hook.",
+        "The hook is easy to understand.",
         "There is enough context here to make a confident call."
       ],
       "risks": [
@@ -34,11 +34,11 @@
     {
       "candidate_id": "community_clip",
       "kind": "clip",
-      "score": 0.7229,
+      "score": 0.7526,
       "status": "strong_signal",
       "reasons": [
-        "Clarity is strong.",
-        "Community support is strong.",
+        "The hook is easy to understand.",
+        "The room is already giving it real attention.",
         "There is enough context here to make a confident call."
       ],
       "risks": [

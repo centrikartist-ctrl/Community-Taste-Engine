@@ -8,13 +8,12 @@ import re
 import sys
 import tempfile
 import time
+import importlib
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
 
 from jsonschema import Draft202012Validator
-
-from pipeline import Logger, run
 
 
 REPO_ROOT = Path(__file__).resolve().parent
@@ -50,6 +49,105 @@ COMMUNITY_TEXT_SIGNAL_TOKENS = (
     "idea",
 )
 HEDGE_TOKENS = ("maybe", "might", "idk", "not sure", "unclear", "perhaps", "guess")
+RECEIPT_TOKENS = (
+    "receipt",
+    "receipts",
+    "source link",
+    "source links",
+    "proof",
+    "evidence",
+    "report",
+    "reports",
+    "screenshot",
+    "screenshots",
+    "docs",
+    "data",
+    "bench",
+    "benchmark",
+    "trace",
+    "log",
+    "logs",
+)
+ACTIONABLE_TOKENS = (
+    "actionable",
+    "act on it today",
+    "builder",
+    "builders",
+    "build",
+    "fix",
+    "review",
+    "merge",
+    "ship",
+    "tool",
+    "tooling",
+    "repo",
+    "pull request",
+    "prototype",
+    "deploy",
+    "test",
+    "runtime",
+)
+BRAND_RISK_TOKENS = (
+    "brand risk",
+    "reputational",
+    "backlash",
+    "off-brand",
+    "off brand",
+    "trust hit",
+    "copycat",
+)
+BAD_FRAME_TOKENS = (
+    "bad external frame",
+    "borrowed frame",
+    "wrong frame",
+    "copycat",
+)
+PRICE_CHATTER_TOKENS = (
+    "price",
+    "prices",
+    "chart",
+    "charts",
+    "candle",
+    "candles",
+    "moon",
+    "bullish",
+    "breakout",
+    "ath",
+)
+HYPE_TOKENS = (
+    "huge",
+    "massive",
+    "soon",
+    "alpha",
+    "big announcement",
+    "game changer",
+    "exploding",
+)
+ARTIFACT_TOKENS = (
+    "repo",
+    "pull request",
+    "prototype",
+    "demo",
+    "doc",
+    "docs",
+    "screenshot",
+    "report",
+    "clip",
+    "artifact",
+    "diff",
+    "commit",
+)
+NEGATED_ARTIFACT_TOKENS = (
+    "no doc",
+    "no docs",
+    "no repo",
+    "no clip",
+    "no artifact",
+    "no prototype",
+    "no screenshot",
+    "no receipt",
+    "no receipts",
+)
 URL_RE = re.compile(r"https?://\S+", re.IGNORECASE)
 
 
@@ -193,17 +291,20 @@ def _judge_video_candidate(
     min_confidence: float,
 ) -> Judgement:
     candidate_path = Path(str(candidate["path"]))
+    pipeline_module = importlib.import_module("pipeline")
+    logger_class = pipeline_module.Logger
+    run_pipeline = pipeline_module.run
 
     try:
         with tempfile.TemporaryDirectory(prefix=f"judge_{candidate_id}_", dir=str(work_root)) as tmp:
             tmp_dir = Path(tmp)
             log_path = tmp_dir / "decisions.jsonl"
-            decisions = run(
+            decisions = run_pipeline(
                 str(candidate_path),
                 log_path=str(log_path),
                 min_confidence=min_confidence,
             )
-            records = Logger(str(log_path)).load()
+            records = logger_class(str(log_path)).load()
     except Exception as exc:
         return Judgement(
             candidate_id=candidate_id,
@@ -289,6 +390,12 @@ def _video_risks(scored: list[dict[str, Any]], confidence_mean: float) -> list[s
 
 def _judge_generic_candidate(candidate_id: str, kind: str, candidate: dict[str, Any]) -> Judgement:
     signals = _merged_generic_signals(candidate)
+    text_value = _candidate_text(candidate)
+    community = candidate.get("community") if isinstance(candidate.get("community"), dict) else {}
+    source = candidate.get("source") if isinstance(candidate.get("source"), dict) else {}
+    link_count = _safe_int(community.get("link_count"), len(URL_RE.findall(text_value)))
+    attachment_count = _safe_int(community.get("attachment_count"))
+    flags = _candidate_theme_flags(candidate, text_value, community, source, link_count, attachment_count)
 
     positive_entries: list[tuple[str, float]] = []
     negative_entries: list[tuple[str, float]] = []
@@ -313,6 +420,12 @@ def _judge_generic_candidate(candidate_id: str, kind: str, candidate: dict[str, 
     strong_positive_count = sum(1 for _key, value in positive_entries if value >= 0.75)
     if strong_positive_count >= 3:
         score = _clamp(score + 0.08)
+    if flags["price_chatter"] and not flags["artifact_path"]:
+        score = _clamp(score - 0.18)
+    if flags["vague_hype"]:
+        score = _clamp(score - 0.12)
+    if not flags["artifact_path"] and signals.get("community_support", 0.0) < 0.25 and signals.get("credibility", 0.0) < 0.4:
+        score = _clamp(score - 0.08)
 
     reasons = _generic_reasons(candidate, positive_entries, completeness, signals)
     risks = _generic_risks(candidate, negative_entries, completeness, score, signals)
@@ -336,24 +449,38 @@ def _generic_reasons(
     signals: dict[str, float],
 ) -> list[str]:
     community = candidate.get("community") if isinstance(candidate.get("community"), dict) else {}
+    source = candidate.get("source") if isinstance(candidate.get("source"), dict) else {}
+    text_value = _candidate_text(candidate)
+    link_count = _safe_int(community.get("link_count"), len(URL_RE.findall(text_value)))
+    attachment_count = _safe_int(community.get("attachment_count"))
+    flags = _candidate_theme_flags(candidate, text_value, community, source, link_count, attachment_count)
     reasons: list[str] = []
 
-    if community.get("reply_count", 0) >= 2 and signals.get("community_support", 0.0) >= 0.65:
-        reasons.append("People are replying to it, not just reacting to it.")
-    if community.get("link_count", 0) >= 1 and signals.get("credibility", 0.0) >= 0.65:
-        reasons.append("It comes with source material instead of only a vague assertion.")
+    if flags["has_receipts"] and flags["clean_hook"] and signals.get("credibility", 0.0) >= 0.65:
+        _append_unique(reasons, "Strong because it has receipts and a clean hook.")
+    if flags["actionable"] and signals.get("relevance", 0.0) >= 0.65:
+        _append_unique(reasons, "Useful because builders can act on it today.")
+    if flags["brand_risk"] and signals.get("relevance", 0.0) >= 0.65:
+        _append_unique(reasons, "Important because it carries brand risk and needs a clear call.")
+    if community.get("reply_count", 0) >= 2 and signals.get("community_support", 0.0) >= 0.65 and flags["concrete_angle"] and not flags["price_chatter"]:
+        _append_unique(reasons, "The room is engaging with a concrete angle, not just reacting.")
+    if flags["artifact_path"] and not flags["has_receipts"] and signals.get("source_quality", 0.0) >= 0.6:
+        _append_unique(reasons, "It points to an artifact path instead of only a vibe.")
 
     for key, value in sorted(positive_entries, key=lambda item: item[1], reverse=True):
         if value < 0.6:
             continue
-        reasons.append(f"{_humanise_key(key).capitalize()} is strong.")
+        if flags["price_chatter"] and key in {"community_support", "clarity"}:
+            continue
+        if flags["vague_hype"] and key == "clarity":
+            continue
+        _append_unique(reasons, _positive_signal_reason(key))
         if len(reasons) == 2:
             break
 
-    if completeness >= 0.66:
-        reasons.append("There is enough context here to make a confident call.")
+    if completeness >= 0.66 and not (flags["price_chatter"] or flags["vague_hype"]):
+        _append_unique(reasons, "There is enough context here to make a confident call.")
     if not reasons:
-        text_value = str(candidate.get("text") or candidate.get("description") or "").strip()
         if text_value:
             reasons.append("The submission is concrete enough to evaluate, even without rich signal data.")
         else:
@@ -370,23 +497,33 @@ def _generic_risks(
 ) -> list[str]:
     risks: list[str] = []
     community = candidate.get("community") if isinstance(candidate.get("community"), dict) else {}
+    source = candidate.get("source") if isinstance(candidate.get("source"), dict) else {}
+    text_value = _candidate_text(candidate)
+    link_count = _safe_int(community.get("link_count"), len(URL_RE.findall(text_value)))
+    attachment_count = _safe_int(community.get("attachment_count"))
+    flags = _candidate_theme_flags(candidate, text_value, community, source, link_count, attachment_count)
 
     if community.get("reaction_count", 0) + community.get("reply_count", 0) == 0 and signals.get("community_support", 0.0) < 0.3:
-        risks.append("The community has not really engaged with it yet.")
+        _append_unique(risks, "The room has not really validated it yet.")
+    if flags["price_chatter"] and not flags["artifact_path"]:
+        _append_unique(risks, "Noise because it only has price energy, no artifact path.")
+    if flags["bad_external_frame"]:
+        _append_unique(risks, "Risky because it borrows a bad external frame.")
+    if flags["vague_hype"]:
+        _append_unique(risks, "Risky because it asks for attention without enough substance.")
 
     for key, value in sorted(negative_entries, key=lambda item: item[1], reverse=True):
         if value < 0.45:
             continue
-        risks.append(f"{_humanise_key(key).capitalize()} is high.")
+        _append_unique(risks, _negative_signal_risk(key))
         if len(risks) == 2:
             break
 
     if completeness < 0.5:
-        risks.append("The submission needs more context before it should drive action.")
-    if score < 0.55:
-        risks.append("Signal is weak relative to the rest of the batch.")
+        _append_unique(risks, "The submission needs more context before it should drive action.")
+    if score < 0.55 and not flags["price_chatter"]:
+        _append_unique(risks, "Signal is weak relative to the rest of the batch.")
     if not risks:
-        text_value = str(candidate.get("text") or candidate.get("description") or "").strip()
         if not text_value:
             risks.append("There is not much explanation attached to this candidate yet.")
         else:
@@ -445,14 +582,62 @@ def _derived_generic_signals(candidate: dict[str, Any]) -> dict[str, float]:
     hedge_hits = sum(1 for token in HEDGE_TOKENS if token in lowered)
     evidence_hits = sum(1 for token in COMMUNITY_TEXT_SIGNAL_TOKENS if token in lowered)
     channel_name = str(source.get("channel_name") or "").lower()
+    flags = _candidate_theme_flags(candidate, text_value, community, source, link_count, attachment_count)
 
-    clarity = _clamp(0.15 + min(word_count / 18.0, 1.0) * 0.65 + (0.12 if any(mark in text_value for mark in ".:?!") else 0.0))
+    clarity = _clamp(
+        0.15
+        + min(word_count / 18.0, 1.0) * 0.65
+        + (0.12 if any(mark in text_value for mark in ".:?!") else 0.0)
+        + (0.1 if flags["clean_hook"] else 0.0)
+        + (0.08 if flags["actionable"] else 0.0)
+        - (0.1 if flags["price_chatter"] and not flags["artifact_path"] else 0.0)
+        - (0.18 if flags["vague_hype"] else 0.0)
+    )
     community_support = _clamp((reaction_count + reply_count * 1.4 + attachment_count * 0.5) / 12.0)
-    credibility = _clamp(0.18 + min(link_count, 2) * 0.2 + min(evidence_hits, 2) * 0.16 + (0.2 if trusted_submitter else 0.0))
-    source_quality = _clamp(0.12 + min(link_count, 2) * 0.22 + min(attachment_count, 2) * 0.1 + (0.18 if trusted_submitter else 0.0))
-    relevance = _clamp(0.42 + (0.12 if any(token in lowered for token in COMMUNITY_TEXT_SIGNAL_TOKENS) else 0.0) + (0.12 if any(token in channel_name for token in ("ideas", "clips", "research", "memes")) else 0.0))
-    novelty = _clamp(0.35 + min(attachment_count, 2) * 0.08 + (0.14 if "hot take" in lowered or "unexpected" in lowered else 0.0))
-    uncertainty = _clamp(0.04 + hedge_hits * 0.14 + (0.18 if word_count < 6 else 0.0) + (0.12 if reaction_count + reply_count == 0 else 0.0))
+    credibility = _clamp(
+        0.18
+        + min(link_count, 2) * 0.2
+        + min(evidence_hits, 2) * 0.16
+        + (0.2 if trusted_submitter else 0.0)
+        + (0.18 if flags["has_receipts"] else 0.0)
+        + (0.08 if flags["actionable"] else 0.0)
+        - (0.16 if flags["price_chatter"] and not flags["artifact_path"] else 0.0)
+        - (0.12 if flags["vague_hype"] else 0.0)
+    )
+    source_quality = _clamp(
+        0.12
+        + min(link_count, 2) * 0.22
+        + min(attachment_count, 2) * 0.1
+        + (0.18 if trusted_submitter else 0.0)
+        + (0.14 if flags["artifact_path"] else 0.0)
+        - (0.18 if flags["price_chatter"] and not flags["artifact_path"] else 0.0)
+    )
+    relevance = _clamp(
+        0.42
+        + (0.12 if any(token in lowered for token in COMMUNITY_TEXT_SIGNAL_TOKENS) else 0.0)
+        + (0.12 if any(token in channel_name for token in ("ideas", "clips", "research", "memes")) else 0.0)
+        + (0.16 if flags["brand_risk"] else 0.0)
+        + (0.14 if flags["actionable"] else 0.0)
+        + (0.08 if flags["artifact_path"] else 0.0)
+        - (0.12 if flags["price_chatter"] and not flags["artifact_path"] else 0.0)
+    )
+    novelty = _clamp(
+        0.35
+        + min(attachment_count, 2) * 0.08
+        + (0.14 if "hot take" in lowered or "unexpected" in lowered else 0.0)
+        + (0.08 if flags["brand_risk"] else 0.0)
+        + (0.06 if flags["actionable"] else 0.0)
+    )
+    uncertainty = _clamp(
+        0.04
+        + hedge_hits * 0.14
+        + (0.18 if word_count < 6 else 0.0)
+        + (0.12 if reaction_count + reply_count == 0 else 0.0)
+        + (0.16 if flags["price_chatter"] and not flags["artifact_path"] else 0.0)
+        + (0.18 if flags["vague_hype"] else 0.0)
+        - (0.08 if flags["has_receipts"] else 0.0)
+        - (0.06 if flags["actionable"] else 0.0)
+    )
 
     return {
         "community_support": round(community_support, 4),
@@ -475,6 +660,98 @@ def _candidate_text(candidate: dict[str, Any]) -> str:
         )
         if part.strip()
     )
+
+
+def _candidate_theme_flags(
+    candidate: dict[str, Any],
+    text_value: str,
+    community: dict[str, Any],
+    source: dict[str, Any],
+    link_count: int,
+    attachment_count: int,
+) -> dict[str, bool]:
+    combined = " ".join(
+        part.strip().lower()
+        for part in (
+            str(candidate.get("title") or ""),
+            text_value,
+            str(candidate.get("description") or ""),
+            str(source.get("channel_name") or ""),
+            " ".join(str(item) for item in source.get("external_urls", []) if item),
+        )
+        if part and part.strip()
+    )
+
+    artifact_path = (
+        link_count > 0
+        or attachment_count > 0
+        or (
+            _contains_any(combined, ARTIFACT_TOKENS)
+            and not _contains_any(combined, NEGATED_ARTIFACT_TOKENS)
+        )
+    )
+    has_receipts = link_count > 0 or _contains_any(combined, RECEIPT_TOKENS)
+    actionable = _contains_any(combined, ACTIONABLE_TOKENS)
+    brand_risk = _contains_any(combined, BRAND_RISK_TOKENS)
+    bad_external_frame = _contains_any(combined, BAD_FRAME_TOKENS)
+    price_chatter = _contains_any(combined, PRICE_CHATTER_TOKENS)
+    vague_hype = _contains_any(combined, HYPE_TOKENS) and not has_receipts and not artifact_path
+    clean_hook = bool(str(candidate.get("title") or "").strip()) and (
+        ":" in str(candidate.get("title") or "")
+        or has_receipts
+        or actionable
+        or brand_risk
+        or len(str(candidate.get("title") or "").split()) >= 4
+    )
+    concrete_angle = has_receipts or actionable or brand_risk or artifact_path or len(text_value.split()) >= 12 or _safe_int(community.get("reply_count")) >= 2
+
+    return {
+        "artifact_path": artifact_path,
+        "has_receipts": has_receipts,
+        "actionable": actionable,
+        "brand_risk": brand_risk,
+        "bad_external_frame": bad_external_frame,
+        "price_chatter": price_chatter,
+        "vague_hype": vague_hype,
+        "clean_hook": clean_hook,
+        "concrete_angle": concrete_angle,
+    }
+
+
+def _contains_any(text: str, tokens: tuple[str, ...]) -> bool:
+    lowered = text.lower()
+    for token in tokens:
+        pattern = rf"(?<!\w){re.escape(token.lower())}(?!\w)"
+        if re.search(pattern, lowered):
+            return True
+    return False
+
+
+def _append_unique(items: list[str], value: str) -> None:
+    if value not in items:
+        items.append(value)
+
+
+def _positive_signal_reason(key: str) -> str:
+    phrases = {
+        "community_support": "The room is already giving it real attention.",
+        "credibility": "The claim is grounded enough to trust the premise.",
+        "clarity": "The hook is easy to understand.",
+        "source_quality": "There is an artifact path behind the claim.",
+        "relevance": "It maps cleanly to what the community should pay attention to.",
+        "novelty": "There is a fresh angle here worth tracking.",
+    }
+    return phrases.get(key, f"{_humanise_key(key).capitalize()} is strong.")
+
+
+def _negative_signal_risk(key: str) -> str:
+    phrases = {
+        "uncertainty": "Risky because the claim is still vague and under-evidenced.",
+        "community_support": "The room has not validated it yet.",
+        "source_quality": "Risky because there is no artifact path yet.",
+        "credibility": "Risky because the claim still lacks enough evidence.",
+    }
+    return phrases.get(key, f"{_humanise_key(key).capitalize()} is high.")
 
 
 def _normalise_signal(key: str, value: Any) -> float | None:

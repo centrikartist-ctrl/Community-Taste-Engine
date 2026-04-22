@@ -1,0 +1,164 @@
+{
+  "candidates": [
+    {
+      "id": "brand_risk_flag",
+      "kind": "claim",
+      "title": "Brand-risk flag: the borrowed frame will read as copycat",
+      "text": "We have receipts, screenshots, and source links showing the current framing borrows a bad external frame. If we post into it without reframing, it lands as copycat instead of original.",
+      "description": "Discord-style note from #brand-risk with linked examples and a concrete call to reframe before posting.",
+      "url": "https://discord.example/messages/2001",
+      "source": {
+        "platform": "discord",
+        "message_id": "2001",
+        "channel_name": "brand-risk",
+        "author_name": "Ops",
+        "timestamp": "2026-04-22T17:00:00Z",
+        "thread_name": "copycat-frame",
+        "parent_message_id": null,
+        "external_urls": [
+          "https://example.com/thread",
+          "https://example.com/screenshot"
+        ],
+        "related_message_ids": [
+          "2001"
+        ]
+      },
+      "community": {
+        "reaction_count": 6,
+        "reply_count": 5,
+        "attachment_count": 1,
+        "link_count": 2,
+        "trusted_submitter": true,
+        "author_message_count": 3,
+        "duplicate_count": 1,
+        "unique_author_count": 1
+      }
+    },
+    {
+      "id": "tooling_review",
+      "kind": "idea",
+      "title": "Tooling review: lazy-import pipeline so pure judgement runs stay clean",
+      "text": "This is actionable today: the PR isolates media imports, keeps non-video batches off NumPy and ffmpeg, and includes a focused runtime test for the exact failure path.",
+      "description": "Discord-style review thread from #tooling-review with a linked PR and clear implementation notes.",
+      "url": "https://discord.example/messages/2002",
+      "source": {
+        "platform": "discord",
+        "message_id": "2002",
+        "channel_name": "tooling-review",
+        "author_name": "Infra",
+        "timestamp": "2026-04-22T17:05:00Z",
+        "thread_name": "runtime-fix",
+        "parent_message_id": null,
+        "external_urls": [
+          "https://example.com/pr/17"
+        ],
+        "related_message_ids": [
+          "2002"
+        ]
+      },
+      "community": {
+        "reaction_count": 5,
+        "reply_count": 4,
+        "attachment_count": 0,
+        "link_count": 1,
+        "trusted_submitter": true,
+        "author_message_count": 2,
+        "duplicate_count": 1,
+        "unique_author_count": 1
+      }
+    },
+    {
+      "id": "community_idea",
+      "kind": "idea",
+      "title": "Community idea: weekly board for what deserves attention",
+      "text": "Make one ranked board each week so builders can see the top claims, tools, and clips. The room can act on it today even before full production.",
+      "description": "Discord-style brainstorm from #ideas-lab with replies turning a rough thought into a concrete operating idea.",
+      "url": "https://discord.example/messages/2003",
+      "source": {
+        "platform": "discord",
+        "message_id": "2003",
+        "channel_name": "ideas-lab",
+        "author_name": "Member One",
+        "timestamp": "2026-04-22T17:10:00Z",
+        "thread_name": "weekly-board",
+        "parent_message_id": null,
+        "external_urls": [],
+        "related_message_ids": [
+          "2003"
+        ]
+      },
+      "community": {
+        "reaction_count": 4,
+        "reply_count": 4,
+        "attachment_count": 0,
+        "link_count": 0,
+        "trusted_submitter": false,
+        "author_message_count": 1,
+        "duplicate_count": 1,
+        "unique_author_count": 1
+      }
+    },
+    {
+      "id": "price_chatter",
+      "kind": "meme",
+      "title": "Price is ripping again",
+      "text": "Green candles everywhere, moon soon, bullish again. No doc, no repo, no clip, just price energy.",
+      "description": "Discord-style chatter from #price-chat with reactions but no artifact path.",
+      "url": "https://discord.example/messages/2004",
+      "source": {
+        "platform": "discord",
+        "message_id": "2004",
+        "channel_name": "price-chat",
+        "author_name": "Member Two",
+        "timestamp": "2026-04-22T17:15:00Z",
+        "thread_name": "",
+        "parent_message_id": null,
+        "external_urls": [],
+        "related_message_ids": [
+          "2004"
+        ]
+      },
+      "community": {
+        "reaction_count": 7,
+        "reply_count": 1,
+        "attachment_count": 0,
+        "link_count": 0,
+        "trusted_submitter": false,
+        "author_message_count": 1,
+        "duplicate_count": 1,
+        "unique_author_count": 1
+      }
+    },
+    {
+      "id": "vague_hype",
+      "kind": "claim",
+      "title": "Huge announcement soon",
+      "text": "Something massive is coming. Big alpha soon. Trust me.",
+      "description": "Discord-style hype post from #general with almost no substance.",
+      "url": "https://discord.example/messages/2005",
+      "source": {
+        "platform": "discord",
+        "message_id": "2005",
+        "channel_name": "general",
+        "author_name": "Member Three",
+        "timestamp": "2026-04-22T17:20:00Z",
+        "thread_name": "",
+        "parent_message_id": null,
+        "external_urls": [],
+        "related_message_ids": [
+          "2005"
+        ]
+      },
+      "community": {
+        "reaction_count": 2,
+        "reply_count": 0,
+        "attachment_count": 0,
+        "link_count": 0,
+        "trusted_submitter": false,
+        "author_message_count": 1,
+        "duplicate_count": 1,
+        "unique_author_count": 1
+      }
+    }
+  ]
+}

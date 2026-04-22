@@ -16,6 +16,8 @@ A text transcript (from any external ASR) can optionally be passed in
 and will be aligned to the detected boundary timestamps.
 """
 
+from __future__ import annotations
+
 import numpy as np
 from dataclasses import dataclass, field
 from vad import detect_speech

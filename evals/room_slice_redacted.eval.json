@@ -1,0 +1,22 @@
+{
+  "name": "room_slice_redacted",
+  "description": "An anonymized real-room batch derived from a Discord CSV export. The strongest items are repo review, tooling artifact, and spill-risk discussion; because the export is metadata-thin, they land as needs-work rather than clean strong-signal wins.",
+  "candidate_batch": "evals/room_slice_redacted.candidates.json",
+  "expected_top_candidate_ids": [
+    "room_repo_review",
+    "room_tooling_artifact"
+  ],
+  "expected_statuses": {
+    "room_tooling_artifact": "needs_work",
+    "room_repo_review": "needs_work",
+    "room_spill_risk": "needs_work",
+    "room_price_chatter": "probably_noise",
+    "room_vague_hype": "unclear"
+  },
+  "must_rank_above": [
+    ["room_repo_review", "room_tooling_artifact"],
+    ["room_repo_review", "room_spill_risk"],
+    ["room_spill_risk", "room_price_chatter"],
+    ["room_spill_risk", "room_vague_hype"]
+  ]
+}

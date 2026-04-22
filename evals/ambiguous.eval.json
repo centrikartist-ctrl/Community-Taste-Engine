@@ -9,7 +9,7 @@
   "expected_statuses": {
     "receipted_claim": "strong_signal",
     "promising_thread": "needs_work",
-    "half_formed_pitch": "unclear",
+    "half_formed_pitch": "probably_noise",
     "old_link": "probably_noise",
     "reaction_meme": "probably_noise"
   },

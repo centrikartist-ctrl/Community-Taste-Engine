@@ -1,4 +1,5 @@
 import json
+import importlib
 import subprocess
 import sys
 from pathlib import Path
@@ -7,6 +8,16 @@ import pytest
 from jsonschema import validate
 
 from judge import judge_candidates
+
+
+def test_importing_judge_does_not_import_pipeline(monkeypatch):
+    sys.modules.pop("judge", None)
+    sys.modules.pop("pipeline", None)
+
+    imported = importlib.import_module("judge")
+
+    assert imported is not None
+    assert "pipeline" not in sys.modules
 
 
 def test_judge_candidates_ranks_and_emits_contract(tmp_path):
@@ -62,6 +73,76 @@ def test_judge_candidates_ranks_and_emits_contract(tmp_path):
 
     assert bottom["candidate_id"] == "noise_meme"
     assert bottom["status"] == "probably_noise"
+
+
+def test_judge_candidates_emit_more_concrete_taste_language(tmp_path):
+    candidates = [
+        {
+            "id": "brand_risk_flag",
+            "kind": "claim",
+            "title": "Brand-risk flag: the borrowed frame will read as copycat",
+            "text": "We have receipts, screenshots, and source links showing the current framing borrows a bad external frame.",
+            "description": "Discord-style note from #brand-risk with concrete examples.",
+            "source": {
+                "platform": "discord",
+                "channel_name": "brand-risk",
+                "external_urls": ["https://example.com/thread"],
+            },
+            "community": {
+                "reaction_count": 6,
+                "reply_count": 4,
+                "attachment_count": 1,
+                "link_count": 1,
+                "trusted_submitter": True,
+            },
+        },
+        {
+            "id": "tooling_review",
+            "kind": "idea",
+            "title": "Tooling review: lazy-import pipeline so pure judgement runs stay clean",
+            "text": "This is actionable today: the PR isolates media imports, keeps non-video batches off NumPy and ffmpeg, and includes a focused runtime test.",
+            "description": "Discord-style review thread from #tooling-review.",
+            "source": {
+                "platform": "discord",
+                "channel_name": "tooling-review",
+                "external_urls": ["https://example.com/pr/17"],
+            },
+            "community": {
+                "reaction_count": 5,
+                "reply_count": 4,
+                "attachment_count": 0,
+                "link_count": 1,
+                "trusted_submitter": True,
+            },
+        },
+        {
+            "id": "price_chatter",
+            "kind": "meme",
+            "title": "Price is ripping again",
+            "text": "Green candles everywhere, moon soon, bullish again. No doc, no repo, no clip, just price energy.",
+            "description": "Discord-style price chatter from #price-chat.",
+            "source": {
+                "platform": "discord",
+                "channel_name": "price-chat",
+                "external_urls": [],
+            },
+            "community": {
+                "reaction_count": 7,
+                "reply_count": 1,
+                "attachment_count": 0,
+                "link_count": 0,
+                "trusted_submitter": False,
+            },
+        },
+    ]
+
+    payload = judge_candidates(candidates, work_dir=str(tmp_path / "judge-work"))
+    by_id = {item["candidate_id"]: item for item in payload["judgements"]}
+
+    assert "Strong because it has receipts and a clean hook." in by_id["brand_risk_flag"]["reasons"]
+    assert "Useful because builders can act on it today." in by_id["tooling_review"]["reasons"]
+    assert "Noise because it only has price energy, no artifact path." in by_id["price_chatter"]["risks"]
+    assert by_id["price_chatter"]["status"] == "probably_noise"
 
 
 def test_judge_cli_writes_output_file(tmp_path):
@@ -279,6 +360,7 @@ def test_judge_cli_reports_missing_video_path_cleanly(tmp_path):
 
 def test_judge_candidates_degrades_gracefully_when_video_processing_fails(tmp_path, monkeypatch):
     import judge
+    import types
 
     video_path = tmp_path / "clip.mp4"
     video_path.write_bytes(b"not-a-real-video")
@@ -286,7 +368,23 @@ def test_judge_candidates_degrades_gracefully_when_video_processing_fails(tmp_pa
     def _raise_runtime_error(*_args, **_kwargs):
         raise RuntimeError("media processing blew up")
 
-    monkeypatch.setattr(judge, "run", _raise_runtime_error)
+    class _FakeLogger:
+        def __init__(self, _path: str):
+            self._path = _path
+
+        def load(self):
+            return []
+
+    fake_pipeline = types.SimpleNamespace(Logger=_FakeLogger, run=_raise_runtime_error)
+
+    original_import_module = judge.importlib.import_module
+
+    def _fake_import_module(name: str):
+        if name == "pipeline":
+            return fake_pipeline
+        return original_import_module(name)
+
+    monkeypatch.setattr(judge.importlib, "import_module", _fake_import_module)
 
     payload = judge_candidates(
         [

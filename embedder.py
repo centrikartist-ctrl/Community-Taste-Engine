@@ -34,6 +34,8 @@ The agent can improve this over time by:
   2. Learning weights for each feature dimension from that feedback
 """
 
+from __future__ import annotations
+
 import subprocess
 import tempfile
 import os

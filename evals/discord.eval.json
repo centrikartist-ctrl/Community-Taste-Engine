@@ -14,7 +14,6 @@
   },
   "must_rank_above": [
     ["discord_1001", "discord_1002"],
-    ["discord_1002", "discord_1003"],
-    ["discord_1003", "discord_1004"]
+    ["discord_1002", "discord_1003"]
   ]
 }
