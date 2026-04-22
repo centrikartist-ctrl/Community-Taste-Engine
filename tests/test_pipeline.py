@@ -1,5 +1,5 @@
 """
-test_pipeline.py — Unit tests for the Judgement Pipeline modules.
+test_pipeline.py — Unit tests for the Community Taste Engine media modules.
 
 Uses only pytest and numpy.
 """

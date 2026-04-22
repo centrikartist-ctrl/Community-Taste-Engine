@@ -6,7 +6,7 @@
 >
 > What you already have is not nothing: there's a Python pipeline with rhythm, speech-boundary, energy, pairing score, decision logs, weight feedback, tests, and a reproducible trust pass. That's a solid weird little machine. The problem is the positioning: right now it sounds like "agentic cut decisions for video editing," which puts it next to Niner's capcut-cli work. I'd move it one layer up.
 >
-> Make Judgement Pipeline answer this:
+> Make Community Taste Engine answer this:
 >
 > "Given a pile of candidate clips/posts/ideas, what deserves attention, and why?"
 >
