@@ -1,0 +1,35 @@
+{
+  "batch_name": "canonical_example_review",
+  "items": [
+    {
+      "candidate_id": "claim_with_receipts",
+      "human_status": "strong_signal",
+      "human_recommended_action": "feature",
+      "notes": "Clear winner."
+    },
+    {
+      "candidate_id": "community_clip",
+      "human_status": "needs_work",
+      "human_recommended_action": "refine",
+      "notes": "Worth keeping, but the evidence is weaker than the machine score suggests."
+    },
+    {
+      "candidate_id": "rough_prompt",
+      "human_status": "unclear",
+      "human_recommended_action": "clarify",
+      "notes": "Needs another pass before it becomes a real call."
+    },
+    {
+      "candidate_id": "stale_link",
+      "human_status": "probably_noise",
+      "human_recommended_action": "pass",
+      "notes": "No reason to elevate it now."
+    },
+    {
+      "candidate_id": "noise_post",
+      "human_status": "probably_noise",
+      "human_recommended_action": "pass",
+      "notes": "Pure noise."
+    }
+  ]
+}

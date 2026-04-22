@@ -2,38 +2,40 @@
 
 Use this checklist before every public release.
 
-## 1) Code health
+## 1) Judgement contract
 
 - [ ] `python -m pytest -q` passes.
-- [ ] `python agent_capcut.py preflight` returns `capcut_cli_available=true`.
-- [ ] `ffmpeg` is available in `PATH`.
+- [ ] `python judge.py candidates.json --output judgements.json` is the main documented command.
+- [ ] The README leads with the judgement-layer promise, not editing automation.
+- [ ] Judgement examples clearly show `candidate_id`, `kind`, `score`, `status`, `reasons`, `risks`, and `recommended_action`.
+- [ ] CLI flags and exit behavior are documented for `judge.py`.
 
-## 2) Live execution readiness
+## 2) Trust and ranking quality
 
-- [ ] Explicit-ID live path works:
-  - `python pipeline.py <video> --live --sound-id <sound_id> --clip-id <clip_id>`
-- [ ] Explicit-ID JSON shim path works:
-  - `python agent_capcut.py compose --sound-id <sound_id> --clip-id <clip_id>`
+- [ ] `python scripts/trust_judgement_pass.py` passes.
+- [ ] The trust pass reruns the canonical checked-in five-candidate example and proves the same top 2 surface with reasons.
+- [ ] The `trust/` artifacts match the current judgement contract wording and checked-in example story.
+- [ ] `python scripts/evaluate_judgements.py` passes across all checked-in datasets.
+- [ ] At least one checked-in dataset includes ambiguous `needs_work` or `unclear` cases.
+- [ ] `python scripts/review_judgements.py ...` works against a checked-in feedback sample.
 
-## 3) Open-source hygiene
+## 3) Media-module health
 
-- [ ] No vendorized external capcut-cli source/binaries in repo.
-- [ ] README setup steps match current CLI behavior.
-- [ ] Changelog/commit message explains new behavior and migration notes.
+- [ ] `python scripts/trust_ugly_pass.py` still passes if the media module is being shipped.
+- [ ] `ffmpeg` requirements for media scoring are documented.
+- [ ] `pipeline.py` is described as a secondary media-analysis module, not the repo identity.
 
-## 4) Runtime observability
+## 4) Repo focus
 
-- [ ] Error JSON includes actionable details (`returncode`, `stderr`, `stdout`).
-- [ ] Decision log path is documented and writable.
-- [ ] One end-to-end smoke run on a sample video is recorded.
-
-## Current status snapshot (2026-04-12)
-
-- PASS: tests (`45 passed`)
-- PASS: explicit-ID live path (`pipeline --live --sound-id ... --clip-id ...`)
-- PASS: downstream contract (IDs provided by upstream discovery/import pipeline)
+- [ ] CapCut-first or compose-first messaging does not lead any primary docs.
+- [ ] Primary docs explicitly say this repo does not own manual-URL import/compose/render workflows.
+- [ ] Stale planning material that conflicts with the community taste engine direction is removed.
+- [ ] Unneeded downstream execution paths are removed outright.
+- [ ] Discord export ingestion is documented and works against the checked-in example export.
+- [ ] Discord export ingestion preserves obvious duplicate, thread, and author-history context.
+- [ ] Local runtime folders like `.venv/`, `out/`, `outputs/`, and `smoke_output/` are ignored.
 
 ## Go/No-Go Rule
 
-- GO for open-source release as "judgement + explicit-ID compose".
-- NO-GO if this repo advertises its own discovery/import/auth path (that belongs upstream).
+- GO when the repo clearly ships as a judgement layer that ranks what deserves attention.
+- NO-GO if the public story drifts back toward "another video tool" or CapCut-first automation.

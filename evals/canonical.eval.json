@@ -1,0 +1,22 @@
+{
+  "name": "canonical_example",
+  "description": "Portable five-candidate example proving the main public ranking story.",
+  "candidate_batch": "examples/candidates.json",
+  "expected_top_candidate_ids": [
+    "claim_with_receipts",
+    "community_clip"
+  ],
+  "expected_statuses": {
+    "claim_with_receipts": "strong_signal",
+    "community_clip": "strong_signal",
+    "rough_prompt": "unclear",
+    "stale_link": "probably_noise",
+    "noise_post": "probably_noise"
+  },
+  "must_rank_above": [
+    ["claim_with_receipts", "community_clip"],
+    ["community_clip", "rough_prompt"],
+    ["rough_prompt", "stale_link"],
+    ["stale_link", "noise_post"]
+  ]
+}

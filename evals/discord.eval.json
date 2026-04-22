@@ -1,0 +1,20 @@
+{
+  "name": "discord_batch",
+  "description": "Community-export batch proving Discord-derived signals still rank the strongest posts first.",
+  "candidate_batch": "examples/discord_candidates.json",
+  "expected_top_candidate_ids": [
+    "discord_1001",
+    "discord_1002"
+  ],
+  "expected_statuses": {
+    "discord_1001": "strong_signal",
+    "discord_1002": "strong_signal",
+    "discord_1003": "unclear",
+    "discord_1004": "unclear"
+  },
+  "must_rank_above": [
+    ["discord_1001", "discord_1002"],
+    ["discord_1002", "discord_1003"],
+    ["discord_1003", "discord_1004"]
+  ]
+}

@@ -96,9 +96,7 @@ def run_ugly_success_pass(report_dir: Path, min_confidence: float = 0.35) -> dic
         decisions = run(
             str(source_clip),
             log_path=str(log_path),
-            output_dir=str(tmp_dir / "outputs"),
             min_confidence=min_confidence,
-            dry_run=True,
         )
 
         records = Logger(str(log_path)).load()

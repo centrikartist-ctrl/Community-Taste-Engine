@@ -1,0 +1,98 @@
+{
+  "generated_at_unix": 1776870406,
+  "summary": {
+    "candidate_count": 5,
+    "top_candidate_ids": [
+      "claim_with_receipts",
+      "community_clip"
+    ],
+    "status_counts": {
+      "strong_signal": 2,
+      "unclear": 1,
+      "probably_noise": 2
+    }
+  },
+  "judgements": [
+    {
+      "candidate_id": "claim_with_receipts",
+      "kind": "claim",
+      "score": 0.9038,
+      "status": "strong_signal",
+      "reasons": [
+        "Credibility is strong.",
+        "Source quality is strong.",
+        "There is enough context here to make a confident call."
+      ],
+      "risks": [
+        "No major risk surfaced, but it still needs human taste review."
+      ],
+      "recommended_action": "feature",
+      "title": "Claim with evidence attached"
+    },
+    {
+      "candidate_id": "community_clip",
+      "kind": "clip",
+      "score": 0.7229,
+      "status": "strong_signal",
+      "reasons": [
+        "Clarity is strong.",
+        "Community support is strong.",
+        "There is enough context here to make a confident call."
+      ],
+      "risks": [
+        "No major risk surfaced, but it still needs human taste review."
+      ],
+      "recommended_action": "feature",
+      "title": "Clip with obvious crowd response"
+    },
+    {
+      "candidate_id": "rough_prompt",
+      "kind": "idea",
+      "score": 0.3619,
+      "status": "unclear",
+      "reasons": [
+        "Clarity is strong.",
+        "Novelty is strong."
+      ],
+      "risks": [
+        "The community has not really engaged with it yet.",
+        "Uncertainty is high.",
+        "The submission needs more context before it should drive action."
+      ],
+      "recommended_action": "clarify",
+      "title": "Interesting prompt, weak explanation"
+    },
+    {
+      "candidate_id": "stale_link",
+      "kind": "link",
+      "score": 0.3428,
+      "status": "probably_noise",
+      "reasons": [
+        "Clarity is strong."
+      ],
+      "risks": [
+        "The community has not really engaged with it yet.",
+        "Uncertainty is high.",
+        "The submission needs more context before it should drive action."
+      ],
+      "recommended_action": "pass",
+      "title": "Old link with weak relevance"
+    },
+    {
+      "candidate_id": "noise_post",
+      "kind": "meme",
+      "score": 0.3135,
+      "status": "probably_noise",
+      "reasons": [
+        "Clarity is strong."
+      ],
+      "risks": [
+        "The community has not really engaged with it yet.",
+        "Uncertainty is high.",
+        "The submission needs more context before it should drive action."
+      ],
+      "recommended_action": "pass",
+      "title": "Pure noise post"
+    }
+  ]
+}

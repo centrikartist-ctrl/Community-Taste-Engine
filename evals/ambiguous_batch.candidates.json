@@ -1,0 +1,70 @@
+{
+  "candidates": [
+    {
+      "id": "receipted_claim",
+      "kind": "claim",
+      "title": "Receipted claim with immediate upside",
+      "text": "A claim with sources, a sharp hook, and obvious audience relevance.",
+      "description": "The framing is clear and the supporting proof is already attached.",
+      "signals": {
+        "credibility": 0.95,
+        "clarity": 0.88,
+        "community_support": 0.74,
+        "source_quality": 0.9,
+        "relevance": 0.8,
+        "uncertainty": 0.12
+      }
+    },
+    {
+      "id": "promising_thread",
+      "kind": "idea",
+      "title": "Promising thread with some proof, but not fully locked",
+      "text": "The angle is promising and people are replying, but the examples still need tightening.",
+      "description": "There is enough context to keep working on it, but not enough to ship without refinement.",
+      "signals": {
+        "clarity": 0.7,
+        "community_support": 0.55,
+        "credibility": 0.5,
+        "relevance": 0.6,
+        "novelty": 0.6,
+        "uncertainty": 0.35
+      }
+    },
+    {
+      "id": "half_formed_pitch",
+      "kind": "idea",
+      "title": "Interesting but half-formed pitch",
+      "text": "There may be something here, but the angle is still vague and underexplained.",
+      "signals": {
+        "clarity": 0.42,
+        "novelty": 0.62,
+        "relevance": 0.48,
+        "uncertainty": 0.46
+      }
+    },
+    {
+      "id": "old_link",
+      "kind": "link",
+      "title": "Old link with thin justification",
+      "text": "A link that exists, but the case for surfacing it now is weak.",
+      "signals": {
+        "clarity": 0.2,
+        "relevance": 0.18,
+        "credibility": 0.24,
+        "uncertainty": 0.72
+      }
+    },
+    {
+      "id": "reaction_meme",
+      "kind": "meme",
+      "title": "Reaction meme with no context",
+      "text": "Funny, but disconnected from the decision we need to make.",
+      "signals": {
+        "clarity": 0.18,
+        "relevance": 0.2,
+        "novelty": 0.3,
+        "uncertainty": 0.7
+      }
+    }
+  ]
+}

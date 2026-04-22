@@ -1,0 +1,171 @@
+{
+  "candidates": [
+    {
+      "id": "discord_1001",
+      "kind": "claim",
+      "title": "Receipts for the claim thread: source https://example.com/report and...",
+      "text": "Receipts for the claim thread: source https://example.com/report and the data backs the angle.",
+      "description": "Discord submission from Core Research in #research-drops with 9 reactions and 4 replies. Aggregated from 2 similar Discord messages across 2 authors.",
+      "url": "https://discord.example/messages/1001",
+      "source": {
+        "platform": "discord",
+        "message_id": "1001",
+        "channel_name": "research-drops",
+        "author_name": "Core Research",
+        "timestamp": "2026-04-20T18:00:00Z",
+        "thread_name": "",
+        "parent_message_id": null,
+        "external_urls": [
+          "https://example.com/report"
+        ],
+        "related_message_ids": [
+          "1001",
+          "1005"
+        ],
+        "author_names": [
+          "Core Research",
+          "Member Four"
+        ]
+      },
+      "community": {
+        "reaction_count": 11,
+        "reply_count": 5,
+        "attachment_count": 0,
+        "link_count": 1,
+        "trusted_submitter": true,
+        "author_message_count": 1,
+        "duplicate_count": 2,
+        "unique_author_count": 2
+      },
+      "signals": {
+        "community_support": 1.0,
+        "clarity": 0.8194444444444445,
+        "credibility": 1.0,
+        "source_quality": 0.8200000000000001,
+        "novelty": 0.35,
+        "relevance": 0.7200000000000001,
+        "uncertainty": 0.05
+      }
+    },
+    {
+      "id": "discord_1002",
+      "kind": "clip",
+      "title": "Clip idea: the payoff lands fast and people...",
+      "text": "Clip idea: the payoff lands fast and people are already quoting it.",
+      "description": "Discord submission from Member One in #clips with 5 reactions and 3 replies. Thread: payoff-lab. Reply context: People keep quoting the ending already.",
+      "url": "https://discord.example/messages/1002",
+      "source": {
+        "platform": "discord",
+        "message_id": "1002",
+        "channel_name": "clips",
+        "author_name": "Member One",
+        "timestamp": "2026-04-20T18:30:00Z",
+        "thread_name": "payoff-lab",
+        "parent_message_id": "0999",
+        "external_urls": [],
+        "related_message_ids": [
+          "1002"
+        ]
+      },
+      "community": {
+        "reaction_count": 5,
+        "reply_count": 3,
+        "attachment_count": 1,
+        "link_count": 0,
+        "trusted_submitter": false,
+        "author_message_count": 1,
+        "duplicate_count": 1,
+        "unique_author_count": 1
+      },
+      "signals": {
+        "community_support": 0.8583333333333334,
+        "clarity": 0.7833333333333333,
+        "credibility": 0.2,
+        "source_quality": 0.24,
+        "novelty": 0.53,
+        "relevance": 0.7200000000000001,
+        "uncertainty": 0.05
+      }
+    },
+    {
+      "id": "discord_1003",
+      "kind": "idea",
+      "title": "Maybe we do something around this, not sure...",
+      "text": "Maybe we do something around this, not sure yet.",
+      "description": "Discord submission from Member Two in #ideas with 0 reactions and 0 replies.",
+      "url": "https://discord.example/messages/1003",
+      "source": {
+        "platform": "discord",
+        "message_id": "1003",
+        "channel_name": "ideas",
+        "author_name": "Member Two",
+        "timestamp": "2026-04-20T19:00:00Z",
+        "thread_name": "",
+        "parent_message_id": null,
+        "external_urls": [],
+        "related_message_ids": [
+          "1003"
+        ]
+      },
+      "community": {
+        "reaction_count": 0,
+        "reply_count": 0,
+        "attachment_count": 0,
+        "link_count": 0,
+        "trusted_submitter": false,
+        "author_message_count": 1,
+        "duplicate_count": 1,
+        "unique_author_count": 1
+      },
+      "signals": {
+        "community_support": 0.0,
+        "clarity": 0.675,
+        "credibility": 0.2,
+        "source_quality": 0.12,
+        "novelty": 0.35,
+        "relevance": 0.6,
+        "uncertainty": 0.43999999999999995
+      }
+    },
+    {
+      "id": "discord_1004",
+      "kind": "meme",
+      "title": "Meme from Member Three",
+      "text": "",
+      "description": "Attachment-only Discord post from Member Three in #memes.",
+      "url": "https://discord.example/messages/1004",
+      "source": {
+        "platform": "discord",
+        "message_id": "1004",
+        "channel_name": "memes",
+        "author_name": "Member Three",
+        "timestamp": "2026-04-20T19:15:00Z",
+        "thread_name": "",
+        "parent_message_id": null,
+        "external_urls": [],
+        "related_message_ids": [
+          "1004"
+        ]
+      },
+      "community": {
+        "reaction_count": 1,
+        "reply_count": 0,
+        "attachment_count": 1,
+        "link_count": 0,
+        "trusted_submitter": false,
+        "author_message_count": 1,
+        "duplicate_count": 1,
+        "unique_author_count": 1
+      },
+      "signals": {
+        "community_support": 0.125,
+        "clarity": 0.1,
+        "credibility": 0.2,
+        "source_quality": 0.16999999999999998,
+        "novelty": 0.48,
+        "relevance": 0.27,
+        "uncertainty": 0.5700000000000001
+      }
+    }
+  ]
+}

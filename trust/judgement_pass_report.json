@@ -1,0 +1,55 @@
+{
+  "ok": true,
+  "generated_at_unix": 1776870543,
+  "source_example": {
+    "candidates": "examples/candidates.json",
+    "judgements": "examples/judgements.json"
+  },
+  "candidate_count": 5,
+  "expected_top_candidate_ids": [
+    "claim_with_receipts",
+    "community_clip"
+  ],
+  "actual_top_candidate_ids": [
+    "claim_with_receipts",
+    "community_clip"
+  ],
+  "top_judgements": [
+    {
+      "candidate_id": "claim_with_receipts",
+      "kind": "claim",
+      "score": 0.9038,
+      "status": "strong_signal",
+      "reasons": [
+        "Credibility is strong.",
+        "Source quality is strong.",
+        "There is enough context here to make a confident call."
+      ],
+      "risks": [
+        "No major risk surfaced, but it still needs human taste review."
+      ],
+      "recommended_action": "feature",
+      "title": "Claim with evidence attached"
+    },
+    {
+      "candidate_id": "community_clip",
+      "kind": "clip",
+      "score": 0.7229,
+      "status": "strong_signal",
+      "reasons": [
+        "Clarity is strong.",
+        "Community support is strong.",
+        "There is enough context here to make a confident call."
+      ],
+      "risks": [
+        "No major risk surfaced, but it still needs human taste review."
+      ],
+      "recommended_action": "feature",
+      "title": "Clip with obvious crowd response"
+    }
+  ],
+  "artifacts": {
+    "report_json": "trust/judgement_pass_report.json",
+    "report_md": "trust/judgement_pass_report.md"
+  }
+}

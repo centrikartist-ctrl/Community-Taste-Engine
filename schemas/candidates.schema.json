@@ -1,0 +1,111 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://community-taste-engine.local/schemas/candidates.schema.json",
+  "title": "Candidates Batch",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "candidates"
+  ],
+  "properties": {
+    "candidates": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/candidate"
+      }
+    }
+  },
+  "$defs": {
+    "candidate": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "kind": {
+          "type": "string",
+          "minLength": 1
+        },
+        "title": {
+          "type": "string"
+        },
+        "headline": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "text": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "path": {
+          "type": "string"
+        },
+        "url": {
+          "type": "string"
+        },
+        "source": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "platform": {
+              "type": "string"
+            },
+            "message_id": {
+              "type": "string"
+            },
+            "channel_name": {
+              "type": "string"
+            },
+            "author_name": {
+              "type": "string"
+            },
+            "timestamp": {
+              "type": "string"
+            }
+          }
+        },
+        "community": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "reaction_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "reply_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "attachment_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "link_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "trusted_submitter": {
+              "type": "boolean"
+            }
+          }
+        },
+        "signals": {
+          "type": "object",
+          "additionalProperties": {
+            "type": [
+              "number",
+              "integer"
+            ]
+          }
+        }
+      }
+    }
+  }
+}

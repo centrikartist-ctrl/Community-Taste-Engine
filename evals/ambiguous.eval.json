@@ -1,0 +1,22 @@
+{
+  "name": "ambiguous_batch",
+  "description": "A less-obvious batch that should still separate strong signal, needs-work, unclear, and noise.",
+  "candidate_batch": "evals/ambiguous_batch.candidates.json",
+  "expected_top_candidate_ids": [
+    "receipted_claim",
+    "promising_thread"
+  ],
+  "expected_statuses": {
+    "receipted_claim": "strong_signal",
+    "promising_thread": "needs_work",
+    "half_formed_pitch": "unclear",
+    "old_link": "probably_noise",
+    "reaction_meme": "probably_noise"
+  },
+  "must_rank_above": [
+    ["receipted_claim", "promising_thread"],
+    ["promising_thread", "half_formed_pitch"],
+    ["half_formed_pitch", "old_link"],
+    ["old_link", "reaction_meme"]
+  ]
+}

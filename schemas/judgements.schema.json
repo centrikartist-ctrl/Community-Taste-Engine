@@ -1,0 +1,124 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://community-taste-engine.local/schemas/judgements.schema.json",
+  "title": "Judgements Batch",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "generated_at_unix",
+    "summary",
+    "judgements"
+  ],
+  "properties": {
+    "generated_at_unix": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "candidate_count",
+        "top_candidate_ids",
+        "status_counts"
+      ],
+      "properties": {
+        "candidate_count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "top_candidate_ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "status_counts": {
+          "type": "object",
+          "propertyNames": {
+            "enum": [
+              "strong_signal",
+              "needs_work",
+              "unclear",
+              "probably_noise"
+            ]
+          },
+          "additionalProperties": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      }
+    },
+    "judgements": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/judgement"
+      }
+    }
+  },
+  "$defs": {
+    "judgement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "candidate_id",
+        "kind",
+        "score",
+        "status",
+        "reasons",
+        "risks",
+        "recommended_action"
+      ],
+      "properties": {
+        "candidate_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "kind": {
+          "type": "string",
+          "minLength": 1
+        },
+        "score": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "status": {
+          "enum": [
+            "strong_signal",
+            "needs_work",
+            "unclear",
+            "probably_noise"
+          ]
+        },
+        "reasons": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1
+        },
+        "risks": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1
+        },
+        "recommended_action": {
+          "enum": [
+            "feature",
+            "refine",
+            "clarify",
+            "pass"
+          ]
+        },
+        "title": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

@@ -1,6 +1,6 @@
 """
-pipeline.py — judgement pipeline orchestrator
-----------------------------------------------
+pipeline.py — Community Taste Engine media module
+-------------------------------------------------
 Planner  → propose cuts with explicit reasoning + confidence
 Critic   → score each cut on three axes
 Logger   → persist every decision + score as JSONL
@@ -12,7 +12,6 @@ This is the learning loop. Every run makes the next run smarter.
 import json
 import time
 import hashlib
-import subprocess
 import argparse
 import logging
 from pathlib import Path
@@ -25,11 +24,9 @@ from audio import load as load_audio
 from beat_tracker import track_beats
 from aligner import build_chunks, Chunk
 from embedder import audio_embedding, visual_embedding, pairing_score
-from capcut_automation import CapCutAutomation, ComposeRequest, CapCutCommandError
 
 
 LOGGER = logging.getLogger("judgement.pipeline")
-MEDIA_SUFFIXES = {".mp4", ".mov", ".mkv", ".webm", ".m4v", ".avi", ".wav", ".mp3", ".aac"}
 
 
 # ══════════════════════════════════════════════════════════════════
@@ -388,64 +385,13 @@ class Logger:
 
 
 # ══════════════════════════════════════════════════════════════════
-# EXECUTOR
-# ══════════════════════════════════════════════════════════════════
-
-def execute_cut(
-    video_path: str,
-    decision: CutDecision,
-    output_dir: str = ".",
-    sound_id: Optional[str] = None,
-    clip_ids: Optional[list[str]] = None,
-    duration_seconds: int = 30,
-) -> str:
-    """
-    Execute capcut-cli compose using explicit library asset IDs.
-
-    Required inputs can be passed directly or via environment:
-      CAPCUT_SOUND_ID
-      CAPCUT_CLIP_ID or CAPCUT_CLIP_IDS (comma-separated)
-    """
-    del video_path  # Kept for API compatibility with existing run() callers.
-
-    if duration_seconds <= 0:
-        raise ValueError("duration_seconds must be positive")
-
-    resolved_sound, resolved_clips = CapCutAutomation.resolve_ids(sound_id=sound_id, clip_ids=clip_ids)
-    request = ComposeRequest(
-        sound_id=resolved_sound,
-        clip_ids=resolved_clips,
-        duration_seconds=duration_seconds,
-        output_dir=output_dir,
-    )
-    LOGGER.info("[executor] compose cut_id=%s sound=%s clips=%d", decision.cut_id, resolved_sound, len(resolved_clips))
-    output_root = Path(output_dir)
-    before = {p.name for p in output_root.iterdir()} if output_root.exists() else set()
-    CapCutAutomation().compose(request, timeout=120)
-
-    existing_media = [p for p in output_root.iterdir() if p.is_file() and p.suffix.lower() in MEDIA_SUFFIXES]
-    new_media = [p for p in existing_media if p.name not in before]
-    selected = new_media or existing_media
-    if not selected:
-        raise RuntimeError("compose completed but no media artifacts were found in output directory")
-
-    selected.sort(key=lambda p: p.stat().st_mtime, reverse=True)
-    return str(selected[0])
-
-
-# ══════════════════════════════════════════════════════════════════
 # MAIN PIPELINE
 # ══════════════════════════════════════════════════════════════════
 
 def run(
     video_path: str,
     log_path: str = "decisions.jsonl",
-    output_dir: str = ".",
     min_confidence: float = 0.35,
-    dry_run: bool = True,
-    sound_id: Optional[str] = None,
-    clip_ids: Optional[list[str]] = None,
-    duration_seconds: int = 30,
     progress_callback: Optional[Callable[[str, dict[str, Any]], None]] = None,
 ) -> list[CutDecision]:
     """
@@ -455,9 +401,7 @@ def run(
     ----------
     video_path     : path to input video (any ffmpeg-supported format)
     log_path       : where to persist decisions
-    output_dir     : where to write cut clips
     min_confidence : planner threshold
-    dry_run        : if True, skip actual capcut-cli calls
 
     Returns
     -------
@@ -486,8 +430,6 @@ def run(
     y = np.zeros(0, dtype=np.float32)
     sr = 22050
     decisions: list[CutDecision] = []
-    resolved_sound_id = sound_id
-    resolved_clip_ids = clip_ids
 
     try:
         # ── Stage 1: Load audio ──────────────────────────────────────────
@@ -509,27 +451,11 @@ def run(
         decisions = planner.plan(chunks, beat_times, bpm, source=video_path)
         print(f"      {len(decisions)} candidates (threshold={min_confidence})")
 
-        # ── Stage 4: Execute + critique + log ────────────────────────────
-        print("[4/4] executing, critiquing, logging...")
-        _emit("executing")
-
-        if not dry_run and (resolved_sound_id is None or not resolved_clip_ids):
-            raise ValueError(
-                "Live mode requires explicit sound/clip IDs from upstream orchestration. "
-                "Provide --sound-id and one or more --clip-id values (or CAPCUT_SOUND_ID/CAPCUT_CLIP_ID(S))."
-            )
+        # ── Stage 4: Critique + log ──────────────────────────────────────
+        print("[4/4] critiquing and logging...")
+        _emit("critiquing")
 
         for d in decisions:
-            if not dry_run:
-                execute_cut(
-                    video_path,
-                    d,
-                    output_dir,
-                    sound_id=resolved_sound_id,
-                    clip_ids=resolved_clip_ids,
-                    duration_seconds=duration_seconds,
-                )
-
             score = critic.score(d, chunks, beat_times, video_path=video_path, audio_cache=(y, sr))
             logger.write(video_path, d, score)
 
@@ -540,19 +466,6 @@ def run(
                 f"e={score.energy_score:.2f}  {d.reason}"
             )
 
-    except CapCutCommandError as exc:
-        LOGGER.exception("pipeline failed")
-        logger.write_event(
-            video_path,
-            "error",
-            str(exc),
-            details={
-                "returncode": exc.returncode,
-                "stdout": (exc.stdout or "")[:500],
-                "stderr": (exc.stderr or "")[:500],
-            },
-        )
-        raise
     except Exception as exc:
         LOGGER.exception("pipeline failed")
         logger.write_event(video_path, "error", str(exc))
@@ -589,25 +502,15 @@ if __name__ == "__main__":
         format="%(asctime)s %(levelname)s %(name)s: %(message)s",
     )
 
-    parser = argparse.ArgumentParser(description="Judgement pipeline orchestrator")
+    parser = argparse.ArgumentParser(description="Community Taste Engine media module")
     parser.add_argument("video", help="Input media path")
     parser.add_argument("--log", default="decisions.jsonl", help="Decision log path")
-    parser.add_argument("--output-dir", default=".", help="Output directory for generated cuts")
     parser.add_argument("--min-confidence", type=float, default=0.35, help="Planner threshold in [0,1]")
-    parser.add_argument("--live", action="store_true", help="Enable capcut-cli compose execution")
-    parser.add_argument("--sound-id", default=None, help="capcut-cli sound id (or use CAPCUT_SOUND_ID)")
-    parser.add_argument("--clip-id", action="append", help="capcut-cli clip id (repeatable; or use CAPCUT_CLIP_ID(S))")
-    parser.add_argument("--duration-seconds", type=int, default=30, help="capcut-cli compose duration")
 
     cli_args = parser.parse_args()
 
     run(
         cli_args.video,
         log_path=cli_args.log,
-        output_dir=cli_args.output_dir,
         min_confidence=cli_args.min_confidence,
-        dry_run=not cli_args.live,
-        sound_id=cli_args.sound_id,
-        clip_ids=cli_args.clip_id,
-        duration_seconds=cli_args.duration_seconds,
     )

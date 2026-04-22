@@ -1,0 +1,110 @@
+{
+  "messages": [
+    {
+      "id": "1001",
+      "channel_name": "research-drops",
+      "timestamp": "2026-04-20T18:00:00Z",
+      "jump_url": "https://discord.example/messages/1001",
+      "content": "Receipts for the claim thread: source https://example.com/report and the data backs the angle.",
+      "author": {
+        "username": "core-research",
+        "display_name": "Core Research",
+        "roles": ["core-team", "research"]
+      },
+      "attachments": [],
+      "embeds": [
+        {
+          "url": "https://example.com/report"
+        }
+      ],
+      "reactions": [
+        {"emoji": ":fire:", "count": 6},
+        {"emoji": ":eyes:", "count": 3}
+      ],
+      "reply_count": 4
+    },
+    {
+      "id": "1005",
+      "channel_name": "research-drops",
+      "timestamp": "2026-04-20T18:10:00Z",
+      "jump_url": "https://discord.example/messages/1005",
+      "content": "Same report backs the angle too: https://example.com/report",
+      "author": {
+        "username": "member4",
+        "display_name": "Member Four",
+        "roles": ["member"]
+      },
+      "attachments": [],
+      "embeds": [
+        {
+          "url": "https://example.com/report"
+        }
+      ],
+      "reactions": [
+        {"emoji": ":thumbsup:", "count": 2}
+      ],
+      "reply_count": 1
+    },
+    {
+      "id": "1002",
+      "channel_name": "clips",
+      "thread_name": "payoff-lab",
+      "timestamp": "2026-04-20T18:30:00Z",
+      "jump_url": "https://discord.example/messages/1002",
+      "content": "Clip idea: the payoff lands fast and people are already quoting it.",
+      "author": {
+        "username": "member1",
+        "display_name": "Member One",
+        "roles": ["member"]
+      },
+      "attachments": [
+        {"filename": "payoff.mp4"}
+      ],
+      "embeds": [],
+      "reactions": [
+        {"emoji": ":sparkles:", "count": 5}
+      ],
+      "reply_count": 3,
+      "referenced_message": {
+        "id": "0999",
+        "content": "People keep quoting the ending already."
+      }
+    },
+    {
+      "id": "1003",
+      "channel_name": "ideas",
+      "timestamp": "2026-04-20T19:00:00Z",
+      "jump_url": "https://discord.example/messages/1003",
+      "content": "Maybe we do something around this, not sure yet.",
+      "author": {
+        "username": "member2",
+        "display_name": "Member Two",
+        "roles": ["member"]
+      },
+      "attachments": [],
+      "embeds": [],
+      "reactions": [],
+      "reply_count": 0
+    },
+    {
+      "id": "1004",
+      "channel_name": "memes",
+      "timestamp": "2026-04-20T19:15:00Z",
+      "jump_url": "https://discord.example/messages/1004",
+      "content": "",
+      "author": {
+        "username": "member3",
+        "display_name": "Member Three",
+        "roles": ["member"]
+      },
+      "attachments": [
+        {"filename": "reaction-meme.png"}
+      ],
+      "embeds": [],
+      "reactions": [
+        {"emoji": ":joy:", "count": 1}
+      ],
+      "reply_count": 0
+    }
+  ]
+}
