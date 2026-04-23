@@ -18,11 +18,25 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Convert a Discord export into candidates.json")
     parser.add_argument("discord_export", help="Path to a Discord export JSON file")
     parser.add_argument("--output", default="candidates.json", help="Path to write candidates.json")
+    parser.add_argument(
+        "--redact-public",
+        action="store_true",
+        help="Strip source identifiers and links so the output is safer to commit as a public fixture",
+    )
     args = parser.parse_args()
 
-    payload = discord_export_to_candidates(load_discord_export(args.discord_export))
+    payload = discord_export_to_candidates(load_discord_export(args.discord_export), redact_public=args.redact_public)
     write_candidates(args.output, payload)
-    print(json.dumps({"candidate_count": len(payload["candidates"]), "output": str(Path(args.output))}, indent=2))
+    print(
+        json.dumps(
+            {
+                "candidate_count": len(payload["candidates"]),
+                "output": str(Path(args.output)),
+                "redact_public": args.redact_public,
+            },
+            indent=2,
+        )
+    )
     return 0
 
 

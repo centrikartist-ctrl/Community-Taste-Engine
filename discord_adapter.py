@@ -32,7 +32,7 @@ def load_discord_export(path: str) -> list[dict[str, Any]]:
     return messages
 
 
-def discord_export_to_candidates(messages: list[dict[str, Any]]) -> dict[str, Any]:
+def discord_export_to_candidates(messages: list[dict[str, Any]], *, redact_public: bool = False) -> dict[str, Any]:
     author_stats = _author_message_counts(messages)
     candidates: list[dict[str, Any]] = []
     for message in messages:
@@ -41,6 +41,8 @@ def discord_export_to_candidates(messages: list[dict[str, Any]]) -> dict[str, An
             candidates.append(candidate)
 
     candidates = _collapse_duplicate_candidates(candidates)
+    if redact_public:
+        candidates = [_redact_public_candidate(candidate) for candidate in candidates]
 
     if not candidates:
         raise ValueError("Discord export produced no candidate messages")
@@ -227,6 +229,48 @@ def _merge_duplicate_group(group: list[dict[str, Any]]) -> dict[str, Any]:
         "uncertainty": min(float(item.get("signals", {}).get("uncertainty", 1.0)) for item in group),
     }
     return primary
+
+
+def _redact_public_candidate(candidate: dict[str, Any]) -> dict[str, Any]:
+    redacted = deepcopy(candidate)
+    redacted.pop("url", None)
+
+    kind = str(redacted.get("kind") or "post").strip() or "post"
+    text = str(redacted.get("text") or "").strip()
+    community = redacted.get("community") if isinstance(redacted.get("community"), dict) else {}
+    duplicate_count = max(_safe_int(community.get("duplicate_count"), 1), 1)
+    unique_author_count = max(_safe_int(community.get("unique_author_count"), 1), 1)
+    reaction_count = _safe_int(community.get("reaction_count"))
+    reply_count = _safe_int(community.get("reply_count"))
+    attachment_count = _safe_int(community.get("attachment_count"))
+
+    if not text and attachment_count:
+        description = "Redacted attachment-only Discord post prepared for a public judgement fixture."
+    else:
+        description = (
+            "Redacted Discord submission prepared for a public judgement fixture "
+            f"with {reaction_count} reactions and {reply_count} replies."
+        )
+    if duplicate_count > 1:
+        description = (
+            f"{description} Aggregated from {duplicate_count} similar messages across "
+            f"{unique_author_count} authors."
+        )
+
+    redacted["description"] = description
+    if not text:
+        redacted["title"] = f"{kind.capitalize()} from redacted Discord"
+
+    redacted["source"] = {
+        "platform": "discord",
+        "redacted": True,
+    }
+
+    signals = redacted.get("signals") if isinstance(redacted.get("signals"), dict) else None
+    if signals is not None:
+        signals["source"] = "discord_redacted"
+
+    return redacted
 
 
 def _guess_kind(content: str, attachment_count: int, image_count: int, video_count: int, link_count: int) -> str:

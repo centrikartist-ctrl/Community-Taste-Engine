@@ -188,10 +188,42 @@ def test_redacted_signal_metadata_drives_room_style_reasons(tmp_path):
     by_id = {item["candidate_id"]: item for item in payload["judgements"]}
     assert "Strong because it has receipts and a clean hook." in by_id["room_brand_risk_flag"]["reasons"]
     assert "Important because it carries brand risk and needs a clear call." in by_id["room_brand_risk_flag"]["reasons"]
+    assert "Risky because it surfaces brand damage and needs careful framing." in by_id["room_brand_risk_flag"]["risks"]
     assert "Noise because it only has price energy, no artifact path." in by_id["room_price_chatter"]["risks"]
     assert by_id["room_price_chatter"]["status"] == "probably_noise"
     assert all("No artifact path is strong." != reason for reason in by_id["room_price_chatter"]["reasons"])
     assert all("Actionable is strong." != reason for reason in by_id["room_brand_risk_flag"]["reasons"])
+
+
+def test_reaction_only_candidate_gets_non_flattering_reason(tmp_path):
+    payload = judge_candidates(
+        [
+            {
+                "id": "pure_emoji_reaction",
+                "kind": "community_signal",
+                "title": "Pure emoji reaction without context",
+                "text": "A member posts only a custom emoji reaction with no explanation, artifact path, or next step.",
+                "signals": {
+                    "source": "discord_redacted",
+                    "no_artifact_path": True,
+                    "risk_type": "reaction_only",
+                    "clarity": 0.12,
+                    "credibility": 0.08,
+                    "source_quality": 0.0,
+                    "relevance": 0.2,
+                    "community_support": 0.08,
+                    "uncertainty": 0.86,
+                },
+            }
+        ],
+        work_dir=str(tmp_path / "judge-work"),
+    )
+
+    judgement = payload["judgements"][0]
+    assert judgement["status"] == "probably_noise"
+    assert judgement["reasons"][0] == "Low-context reaction, useful as mood but not direction."
+    assert "The hook is easy to understand." not in judgement["reasons"]
+    assert "Low-context reaction only; it should not drive direction by itself." in judgement["risks"]
 
 
 def test_judge_cli_writes_output_file(tmp_path):

@@ -1,0 +1,24 @@
+{
+  "name": "emoji_loop_redacted",
+  "description": "An anonymized real-room batch from the Discord emoji/art loop. Artifact creation and crop correction should beat market pressure and pure reaction-only chatter.",
+  "candidate_batch": "evals/emoji_loop_redacted.candidates.json",
+  "expected_top_candidate_ids": [
+    "emoji_artifact_loop",
+    "emoji_crop_correction"
+  ],
+  "expected_statuses": {
+    "emoji_artifact_loop": "strong_signal",
+    "emoji_crop_correction": "strong_signal",
+    "student_portrait_revision": "strong_signal",
+    "shill_suspension_warning": "strong_signal",
+    "market_uptrend_pressure": "unclear",
+    "pure_emoji_reaction": "probably_noise"
+  },
+  "must_rank_above": [
+    ["emoji_artifact_loop", "emoji_crop_correction"],
+    ["emoji_crop_correction", "student_portrait_revision"],
+    ["student_portrait_revision", "market_uptrend_pressure"],
+    ["shill_suspension_warning", "pure_emoji_reaction"],
+    ["market_uptrend_pressure", "pure_emoji_reaction"]
+  ]
+}

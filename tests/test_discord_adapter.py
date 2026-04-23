@@ -81,6 +81,64 @@ def test_discord_adapter_cli_writes_candidates_file(tmp_path):
     assert payload["candidates"][0]["source"]["platform"] == "discord"
 
 
+def test_discord_export_to_candidates_redacts_public_identifiers(tmp_path):
+    export = {
+        "messages": [
+            {
+                "id": "4001",
+                "channel_name": "private-room",
+                "thread_name": "sensitive-thread",
+                "content": "Receipt thread https://example.com/private with a follow-up.",
+                "jump_url": "https://discord.com/channels/private/4001",
+                "timestamp": "2026-04-23T12:00:00Z",
+                "author": {"display_name": "Private Person", "roles": ["member"]},
+                "embeds": [{"url": "https://example.com/private"}],
+                "reactions": [{"count": 2}],
+                "reply_count": 1,
+            }
+        ]
+    }
+    export_path = tmp_path / "discord_export.json"
+    export_path.write_text(json.dumps(export), encoding="utf-8")
+
+    payload = discord_export_to_candidates(load_discord_export(str(export_path)), redact_public=True)
+
+    candidate = payload["candidates"][0]
+    assert candidate["source"] == {"platform": "discord", "redacted": True}
+    assert candidate["signals"]["source"] == "discord_redacted"
+    assert "url" not in candidate
+    assert "Private Person" not in candidate["description"]
+    assert "private-room" not in candidate["description"]
+
+
+def test_discord_adapter_cli_redact_public_writes_redacted_candidates(tmp_path):
+    repo_root = Path(__file__).resolve().parents[1]
+    export_path = repo_root / "examples" / "discord_export.json"
+    output_path = tmp_path / "candidates.json"
+
+    proc = subprocess.run(
+        [
+            sys.executable,
+            "scripts/discord_to_candidates.py",
+            str(export_path),
+            "--output",
+            str(output_path),
+            "--redact-public",
+        ],
+        capture_output=True,
+        text=True,
+        cwd=str(repo_root),
+        timeout=120,
+    )
+
+    assert proc.returncode == 0, proc.stderr
+    payload = json.loads(output_path.read_text(encoding="utf-8"))
+    candidate = payload["candidates"][0]
+    assert candidate["source"] == {"platform": "discord", "redacted": True}
+    assert candidate["signals"]["source"] == "discord_redacted"
+    assert "url" not in candidate
+
+
 def test_discord_adapter_keeps_thread_context_and_penalises_attachment_only_noise(tmp_path):
     export = {
         "messages": [

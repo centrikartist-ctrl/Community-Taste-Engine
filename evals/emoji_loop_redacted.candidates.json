@@ -1,0 +1,123 @@
+{
+  "candidates": [
+    {
+      "id": "emoji_artifact_loop",
+      "kind": "community_signal",
+      "title": "Emoji art-direction loop produced usable house artifacts",
+      "text": "The room turned rough emoji references into a coherent Lobstar-house visual direction, selected four reaction artifacts, cleaned them to emoji size, and installed them as server culture.",
+      "description": "Redacted from live Discord discussion. Keeps the lesson: community taste corrections can turn chat into durable artifacts.",
+      "signals": {
+        "source": "discord_redacted",
+        "has_receipts": true,
+        "actionable": true,
+        "artifact_path": true,
+        "risk_type": "community_artifact",
+        "clarity": 0.9,
+        "credibility": 0.86,
+        "source_quality": 0.88,
+        "relevance": 0.95,
+        "community_support": 0.92,
+        "novelty": 0.82,
+        "uncertainty": 0.08
+      }
+    },
+    {
+      "id": "emoji_crop_correction",
+      "kind": "community_signal",
+      "title": "Production correction catches bad crop and background gutters",
+      "text": "A community member flags that the selected emoji artwork does not fit the frame and still shows unwanted background gutter, forcing a production cleanup pass before upload.",
+      "description": "Redacted from live Discord discussion. Keeps the lesson: production-quality corrections should rank above more concept generation.",
+      "signals": {
+        "source": "discord_redacted",
+        "actionable": true,
+        "artifact_path": true,
+        "risk_type": "production_quality",
+        "clarity": 0.82,
+        "credibility": 0.78,
+        "source_quality": 0.72,
+        "relevance": 0.9,
+        "community_support": 0.46,
+        "novelty": 0.52,
+        "uncertainty": 0.14
+      }
+    },
+    {
+      "id": "student_portrait_revision",
+      "kind": "community_signal",
+      "title": "Student portrait needs more crustacean identity",
+      "text": "The room likes the apprentice portrait direction, but corrects that it is too human and should read as a small crustacean apprentice with trumpet, papers, ink, and books.",
+      "description": "Redacted from live Discord discussion. Keeps the lesson: identity art should preserve role and anatomy, not only style.",
+      "signals": {
+        "source": "discord_redacted",
+        "actionable": true,
+        "artifact_path": true,
+        "risk_type": "identity_art_direction",
+        "clarity": 0.74,
+        "credibility": 0.68,
+        "source_quality": 0.64,
+        "relevance": 0.78,
+        "community_support": 0.58,
+        "novelty": 0.62,
+        "uncertainty": 0.22
+      }
+    },
+    {
+      "id": "shill_suspension_warning",
+      "kind": "community_signal",
+      "title": "Brute-force shilling creates account-suspension risk",
+      "text": "A member reports that multiple accounts were suspended while shilling and the room reframes the safer path as posting artifacts, clips, explanations, and workshop evidence instead of raw buy-pressure spam.",
+      "description": "Redacted from live Discord discussion. Keeps the lesson: market attention should be converted into artifacts rather than spam behavior.",
+      "signals": {
+        "source": "discord_redacted",
+        "has_receipts": true,
+        "actionable": true,
+        "brand_risk": true,
+        "risk_type": "brand_risk",
+        "clarity": 0.76,
+        "credibility": 0.72,
+        "source_quality": 0.66,
+        "relevance": 0.84,
+        "community_support": 0.32,
+        "novelty": 0.48,
+        "uncertainty": 0.24
+      }
+    },
+    {
+      "id": "market_uptrend_pressure",
+      "kind": "community_signal",
+      "title": "Market-uptrend prompt asks what is being cooked",
+      "text": "A member asks whether anything is being prepared for the market uptrend and pushes for visible output rather than wasting attention.",
+      "description": "Redacted from live Discord discussion. Keeps the lesson: timely market pressure can be useful, but needs an artifact plan to become signal.",
+      "signals": {
+        "source": "discord_redacted",
+        "actionable": true,
+        "risk_type": "market_prompt",
+        "clarity": 0.58,
+        "credibility": 0.38,
+        "source_quality": 0.24,
+        "relevance": 0.7,
+        "community_support": 0.18,
+        "novelty": 0.3,
+        "uncertainty": 0.42
+      }
+    },
+    {
+      "id": "pure_emoji_reaction",
+      "kind": "community_signal",
+      "title": "Pure emoji reaction without context",
+      "text": "A member posts only a custom emoji reaction with no explanation, artifact path, or next step.",
+      "description": "Redacted from live Discord discussion. Keeps the lesson: emoji usage proves culture but a standalone reaction is not itself a ranked work item.",
+      "signals": {
+        "source": "discord_redacted",
+        "no_artifact_path": true,
+        "risk_type": "reaction_only",
+        "clarity": 0.12,
+        "credibility": 0.08,
+        "source_quality": 0.0,
+        "relevance": 0.2,
+        "community_support": 0.08,
+        "uncertainty": 0.86
+      }
+    }
+  ]
+}

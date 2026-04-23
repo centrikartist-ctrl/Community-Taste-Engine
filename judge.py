@@ -123,6 +123,15 @@ HYPE_TOKENS = (
     "game changer",
     "exploding",
 )
+REACTION_ONLY_TOKENS = (
+    "emoji reaction",
+    "custom emoji",
+    "reaction only",
+    "reaction-only",
+    "emoji only",
+    "only emoji",
+    "standalone reaction",
+)
 ARTIFACT_TOKENS = (
     "repo",
     "pull request",
@@ -456,6 +465,11 @@ def _generic_reasons(
     link_count = _safe_int(community.get("link_count"), len(URL_RE.findall(text_value)))
     attachment_count = _safe_int(community.get("attachment_count"))
     flags = _candidate_theme_flags(candidate, text_value, community, source, link_count, attachment_count)
+    low_context_reaction = flags["reaction_only"] or (
+        flags["no_artifact_path"]
+        and signals.get("source_quality", 0.0) <= 0.15
+        and signals.get("credibility", 0.0) <= 0.2
+    )
     reasons: list[str] = []
 
     if flags["has_receipts"] and flags["clean_hook"] and signals.get("credibility", 0.0) >= 0.65:
@@ -464,6 +478,8 @@ def _generic_reasons(
         _append_unique(reasons, "Useful because builders can act on it today.")
     if flags["brand_risk"] and signals.get("relevance", 0.0) >= 0.65:
         _append_unique(reasons, "Important because it carries brand risk and needs a clear call.")
+    if low_context_reaction:
+        _append_unique(reasons, "Low-context reaction, useful as mood but not direction.")
     if community.get("reply_count", 0) >= 2 and signals.get("community_support", 0.0) >= 0.65 and flags["concrete_angle"] and not flags["price_chatter"]:
         _append_unique(reasons, "The room is engaging with a concrete angle, not just reacting.")
     if flags["artifact_path"] and not flags["has_receipts"] and signals.get("source_quality", 0.0) >= 0.6:
@@ -471,6 +487,8 @@ def _generic_reasons(
 
     for key, value in sorted(positive_entries, key=lambda item: item[1], reverse=True):
         if value < 0.6:
+            continue
+        if low_context_reaction:
             continue
         if flags["price_chatter"] and key in {"community_support", "clarity"}:
             continue
@@ -480,10 +498,12 @@ def _generic_reasons(
         if len(reasons) == 2:
             break
 
-    if completeness >= 0.66 and not (flags["price_chatter"] or flags["vague_hype"]):
+    if completeness >= 0.66 and not (flags["price_chatter"] or flags["vague_hype"] or low_context_reaction):
         _append_unique(reasons, "There is enough context here to make a confident call.")
     if not reasons:
-        if text_value:
+        if low_context_reaction:
+            reasons.append("Low-context reaction, useful as mood but not direction.")
+        elif text_value:
             reasons.append("The submission is concrete enough to evaluate, even without rich signal data.")
         else:
             reasons.append("The candidate has some directional signal, but it is still sparse.")
@@ -505,12 +525,18 @@ def _generic_risks(
     attachment_count = _safe_int(community.get("attachment_count"))
     flags = _candidate_theme_flags(candidate, text_value, community, source, link_count, attachment_count)
 
+    if flags["brand_risk"]:
+        _append_unique(risks, "Risky because it surfaces brand damage and needs careful framing.")
     if community.get("reaction_count", 0) + community.get("reply_count", 0) == 0 and signals.get("community_support", 0.0) < 0.3:
         _append_unique(risks, "The room has not really validated it yet.")
     if flags["price_chatter"] and not flags["artifact_path"]:
         _append_unique(risks, "Noise because it only has price energy, no artifact path.")
     if flags["bad_external_frame"]:
         _append_unique(risks, "Risky because it borrows a bad external frame.")
+    if flags["reaction_only"]:
+        _append_unique(risks, "Low-context reaction only; it should not drive direction by itself.")
+    elif flags["no_artifact_path"] and not flags["price_chatter"]:
+        _append_unique(risks, "Risky because there is still no artifact path or clear next step.")
     if flags["vague_hype"]:
         _append_unique(risks, "Risky because it asks for attention without enough substance.")
 
@@ -705,12 +731,14 @@ def _candidate_theme_flags(
             )
         )
     )
+    no_artifact_path = explicit_no_artifact_path or (not artifact_path and _contains_any(combined, NEGATED_ARTIFACT_TOKENS))
     has_receipts = _signal_bool(explicit, "has_receipts") or link_count > 0 or _contains_any(combined, RECEIPT_TOKENS)
     actionable = _signal_bool(explicit, "actionable") or _contains_any(combined, ACTIONABLE_TOKENS)
     brand_risk = _signal_bool(explicit, "brand_risk") or explicit_risk_type in {"brand_frame", "brand_risk", "disclosure_spill"} or _contains_any(combined, BRAND_RISK_TOKENS)
     bad_external_frame = _signal_bool(explicit, "bad_external_frame") or explicit_risk_type == "brand_frame" or _contains_any(combined, BAD_FRAME_TOKENS)
     price_chatter = _signal_bool(explicit, "price_chatter") or explicit_risk_type == "price_chatter" or _contains_any(combined, PRICE_CHATTER_TOKENS)
     vague_hype = _signal_bool(explicit, "vague_hype") or explicit_risk_type == "vague_hype" or (_contains_any(combined, HYPE_TOKENS) and not has_receipts and not artifact_path)
+    reaction_only = explicit_risk_type == "reaction_only" or (no_artifact_path and _contains_any(combined, REACTION_ONLY_TOKENS))
     clean_hook = bool(str(candidate.get("title") or "").strip()) and (
         ":" in str(candidate.get("title") or "")
         or has_receipts
@@ -722,12 +750,14 @@ def _candidate_theme_flags(
 
     return {
         "artifact_path": artifact_path,
+        "no_artifact_path": no_artifact_path,
         "has_receipts": has_receipts,
         "actionable": actionable,
         "brand_risk": brand_risk,
         "bad_external_frame": bad_external_frame,
         "price_chatter": price_chatter,
         "vague_hype": vague_hype,
+        "reaction_only": reaction_only,
         "clean_hook": clean_hook,
         "concrete_angle": concrete_angle,
     }

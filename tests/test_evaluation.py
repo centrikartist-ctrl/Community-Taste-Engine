@@ -23,8 +23,8 @@ def test_evaluation_script_passes_checked_in_datasets(tmp_path):
 
     assert proc.returncode == 0, proc.stderr
     report = json.loads(report_path.read_text(encoding="utf-8"))
-    assert report["dataset_count"] == 5
-    assert report["passed_count"] == 5
+    assert report["dataset_count"] == 6
+    assert report["passed_count"] == 6
     assert report["top_two_exact_rate"] == 1.0
 
 

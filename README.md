@@ -294,6 +294,12 @@ To convert a Discord export into the main `candidates.json` contract:
 python scripts/discord_to_candidates.py examples/discord_export.json --output candidates.json
 ```
 
+If you are preparing a public eval fixture from a real-room export, use `--redact-public` so source identifiers and links are stripped before anything is committed:
+
+```bash
+python scripts/discord_to_candidates.py room_export.json --output out/redacted_candidates.json --redact-public
+```
+
 The neutral usage and contract notes live in `COMMUNITY_TASTE_ENGINE_GUIDE.md`.
 
 ## Evaluation
