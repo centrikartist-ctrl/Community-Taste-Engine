@@ -1,0 +1,22 @@
+{
+  "name": "artifact_discipline_redacted",
+  "description": "A public-safe eval distilled from a real Discord HTML export. It checks that artifact-first operating notes and concrete repo reviews beat suspense, price emotion, and vague breakthrough teases.",
+  "candidate_batch": "evals/artifact_discipline_redacted.candidates.json",
+  "expected_top_candidate_ids": [
+    "artifact_first_operating_note",
+    "repo_pr_review_request"
+  ],
+  "expected_statuses": {
+    "artifact_first_operating_note": "strong_signal",
+    "repo_pr_review_request": "strong_signal",
+    "concrete_artifact_over_drumroll": "unclear",
+    "price_emotion_prompt": "probably_noise",
+    "vague_breakthrough_tease": "probably_noise"
+  },
+  "must_rank_above": [
+    ["artifact_first_operating_note", "repo_pr_review_request"],
+    ["repo_pr_review_request", "concrete_artifact_over_drumroll"],
+    ["concrete_artifact_over_drumroll", "price_emotion_prompt"],
+    ["concrete_artifact_over_drumroll", "vague_breakthrough_tease"]
+  ]
+}

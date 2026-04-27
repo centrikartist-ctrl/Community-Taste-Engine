@@ -112,6 +112,7 @@
             "feature",
             "refine",
             "clarify",
+            "repair_input",
             "pass"
           ]
         },

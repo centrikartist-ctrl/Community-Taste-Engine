@@ -406,8 +406,9 @@ def test_judge_cli_reports_invalid_json_cleanly(tmp_path):
     assert "invalid JSON" in proc.stderr
 
 
-def test_judge_cli_reports_missing_video_path_cleanly(tmp_path):
+def test_judge_cli_reports_missing_video_path_as_repairable_candidate(tmp_path):
     candidates_path = tmp_path / "candidates.json"
+    output_path = tmp_path / "reports" / "judgements.json"
     candidates_path.write_text(
         json.dumps(
             {
@@ -428,6 +429,8 @@ def test_judge_cli_reports_missing_video_path_cleanly(tmp_path):
             sys.executable,
             "judge.py",
             str(candidates_path),
+            "--output",
+            str(output_path),
         ],
         capture_output=True,
         text=True,
@@ -435,8 +438,12 @@ def test_judge_cli_reports_missing_video_path_cleanly(tmp_path):
         timeout=120,
     )
 
-    assert proc.returncode == 1
-    assert "Video path does not exist" in proc.stderr
+    assert proc.returncode == 0, proc.stderr
+    payload = json.loads(output_path.read_text(encoding="utf-8"))
+    judgement = payload["judgements"][0]
+    assert judgement["candidate_id"] == "broken_video"
+    assert judgement["recommended_action"] == "repair_input"
+    assert "Missing local video file" in judgement["risks"][0]
 
 
 def test_judge_candidates_degrades_gracefully_when_video_processing_fails(tmp_path, monkeypatch):

@@ -111,6 +111,14 @@ Status buckets are:
 - `unclear`
 - `probably_noise`
 
+Recommended actions are:
+
+- `feature`
+- `refine`
+- `clarify`
+- `repair_input`
+- `pass`
+
 ## What it does
 
 Ranks mixed candidate batches and explains the call in plain language.

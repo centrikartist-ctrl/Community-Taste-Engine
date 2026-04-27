@@ -139,6 +139,42 @@ def test_discord_adapter_cli_redact_public_writes_redacted_candidates(tmp_path):
     assert "url" not in candidate
 
 
+def test_discord_html_export_loads_messages_and_can_redact_publicly(tmp_path):
+    export_path = tmp_path / "discord_export.html"
+    export_path.write_text(
+        """
+        <!DOCTYPE html>
+        <html>
+          <body>
+            <ul class="chatContent">
+              <li>
+                <div class="titleInfo">
+                  <p class="timeInfo"><span class="chatName">Private Person</span><span class="time">Sat Apr 25 2026 08:00:00 GMT+0100</span></p>
+                  <p><span style="color: skyblue;"></span> Bring the artifact, not the trailer. One concrete repo note beats vague hype.</p>
+                </div>
+              </li>
+              <li>
+                <div class="titleInfo">
+                  <p class="timeInfo"><span class="chatName">Another Member</span><span class="time">Sat Apr 25 2026 08:01:00 GMT+0100</span></p>
+                  <p><span style="color: skyblue;"></span> Price soon?</p>
+                </div>
+              </li>
+            </ul>
+          </body>
+        </html>
+        """,
+        encoding="utf-8",
+    )
+
+    messages = load_discord_export(str(export_path))
+    payload = discord_export_to_candidates(messages, redact_public=True)
+
+    assert len(messages) == 2
+    assert messages[0]["author"]["display_name"] == "Private Person"
+    assert payload["candidates"][0]["source"] == {"platform": "discord", "redacted": True}
+    assert "Private Person" not in payload["candidates"][0]["description"]
+
+
 def test_discord_adapter_keeps_thread_context_and_penalises_attachment_only_noise(tmp_path):
     export = {
         "messages": [

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import shutil
 import sys
 import tempfile
 from pathlib import Path
@@ -17,6 +18,7 @@ from judge import judge_candidates, load_candidates_payload, validate_candidates
 
 
 EVALS_DIR = REPO_ROOT / "evals"
+DEFAULT_WORK_ROOT = REPO_ROOT / ".judgement-temp"
 
 
 def load_eval_manifest(path: Path) -> dict[str, Any]:
@@ -84,8 +86,29 @@ def evaluate_manifest(manifest_path: Path, *, work_root: Path) -> dict[str, Any]
     }
 
 
-def evaluate_manifests(manifest_paths: list[Path]) -> dict[str, Any]:
-    with tempfile.TemporaryDirectory(prefix="judgement_evals_") as tmp:
+class _ManagedWorkDir:
+    def __init__(self, prefix: str, work_root: Path) -> None:
+        self.work_root = work_root
+        self.prefix = prefix
+        self.path: str | None = None
+
+    def __enter__(self) -> str:
+        self.work_root.mkdir(parents=True, exist_ok=True)
+        self.path = tempfile.mkdtemp(prefix=self.prefix, dir=str(self.work_root))
+        return self.path
+
+    def __exit__(self, exc_type, exc, tb) -> bool:
+        if self.path is not None:
+            shutil.rmtree(self.path, ignore_errors=True)
+        return False
+
+
+def _temporary_work_dir(prefix: str, work_root: Path) -> _ManagedWorkDir:
+    return _ManagedWorkDir(prefix, work_root)
+
+
+def evaluate_manifests(manifest_paths: list[Path], *, work_root: Path = DEFAULT_WORK_ROOT) -> dict[str, Any]:
+    with _temporary_work_dir("judgement_evals_", work_root) as tmp:
         work_root = Path(tmp)
         reports = [evaluate_manifest(path, work_root=work_root) for path in manifest_paths]
 
@@ -118,6 +141,11 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Run checked-in judgement evaluations")
     parser.add_argument("manifests", nargs="*", help="Optional evaluation manifest paths")
     parser.add_argument("--output", default=None, help="Optional path to write the evaluation report JSON")
+    parser.add_argument(
+        "--work-root",
+        default=str(DEFAULT_WORK_ROOT),
+        help="Directory where temporary evaluation work directories are created",
+    )
     args = parser.parse_args()
 
     manifest_paths = [REPO_ROOT / path for path in args.manifests] if args.manifests else _default_manifest_paths()
@@ -125,7 +153,7 @@ def main() -> int:
         print("No evaluation manifests found.", file=sys.stderr)
         return 1
 
-    report = evaluate_manifests(manifest_paths)
+    report = evaluate_manifests(manifest_paths, work_root=Path(args.work_root))
     if args.output:
         Path(args.output).write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
 

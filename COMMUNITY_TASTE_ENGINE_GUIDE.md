@@ -51,6 +51,14 @@ Status buckets:
 - `unclear`
 - `probably_noise`
 
+Recommended actions:
+
+- `feature`
+- `refine`
+- `clarify`
+- `repair_input`
+- `pass`
+
 ## Preparing input
 
 ### Option 1: Write `candidates.json` directly

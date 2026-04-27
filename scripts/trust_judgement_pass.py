@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -15,6 +16,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 EXAMPLES_DIR = REPO_ROOT / "examples"
 CANONICAL_CANDIDATES_PATH = EXAMPLES_DIR / "candidates.json"
 CANONICAL_JUDGEMENTS_PATH = EXAMPLES_DIR / "judgements.json"
+DEFAULT_WORK_ROOT = REPO_ROOT / ".judgement-temp"
 
 
 def _load_json(path: Path) -> dict:
@@ -31,10 +33,31 @@ def _expected_top_candidate_ids() -> list[str]:
     return top_ids[:2]
 
 
-def run_trust_pass(report_dir: Path) -> dict:
+class _ManagedWorkDir:
+    def __init__(self, prefix: str, work_root: Path) -> None:
+        self.work_root = work_root
+        self.prefix = prefix
+        self.path: str | None = None
+
+    def __enter__(self) -> str:
+        self.work_root.mkdir(parents=True, exist_ok=True)
+        self.path = tempfile.mkdtemp(prefix=self.prefix, dir=str(self.work_root))
+        return self.path
+
+    def __exit__(self, exc_type, exc, tb) -> bool:
+        if self.path is not None:
+            shutil.rmtree(self.path, ignore_errors=True)
+        return False
+
+
+def _temporary_work_dir(prefix: str, work_root: Path) -> _ManagedWorkDir:
+    return _ManagedWorkDir(prefix, work_root)
+
+
+def run_trust_pass(report_dir: Path, *, work_root: Path = DEFAULT_WORK_ROOT) -> dict:
     report_dir.mkdir(parents=True, exist_ok=True)
 
-    with tempfile.TemporaryDirectory(prefix="judgement_contract_pass_") as tmp:
+    with _temporary_work_dir("judgement_contract_pass_", work_root) as tmp:
         tmp_dir = Path(tmp)
         output_path = tmp_dir / "judgements.json"
 
@@ -107,9 +130,14 @@ def run_trust_pass(report_dir: Path) -> dict:
 def main() -> int:
     parser = argparse.ArgumentParser(description="Run the judgement contract trust pass")
     parser.add_argument("--report-dir", default="trust", help="Directory where trust report files are written")
+    parser.add_argument(
+        "--work-root",
+        default=str(DEFAULT_WORK_ROOT),
+        help="Directory where temporary trust-pass work directories are created",
+    )
     args = parser.parse_args()
 
-    report = run_trust_pass(Path(args.report_dir))
+    report = run_trust_pass(Path(args.report_dir), work_root=Path(args.work_root))
     print(json.dumps(report, indent=2))
     return 0
 

@@ -1,0 +1,100 @@
+{
+  "candidates": [
+    {
+      "id": "artifact_first_operating_note",
+      "kind": "community_signal",
+      "title": "Artifact-first operating note for the room",
+      "text": "A room participant asks how to move from idle chatter into useful work. The answer gives a concrete operating rule: bring artifacts, clips, tools, notes, or screenshots with context; ask narrower questions; make one small thing together that would still matter if price stopped moving.",
+      "description": "Paraphrased from a real Discord HTML export for privacy. It condenses a recurring artifact-first community discipline into a public-safe eval pattern.",
+      "signals": {
+        "source": "discord_redacted",
+        "actionable": true,
+        "artifact_path": true,
+        "risk_type": "community_method",
+        "clarity": 0.86,
+        "credibility": 0.78,
+        "source_quality": 0.74,
+        "relevance": 0.9,
+        "community_support": 0.42,
+        "uncertainty": 0.16
+      }
+    },
+    {
+      "id": "concrete_artifact_over_drumroll",
+      "kind": "community_signal",
+      "title": "Concrete artifact beats suspense",
+      "text": "A member claims to have a breakthrough but does not share the claim, artifact, or result. The useful lesson is that hidden breakthroughs cannot be evaluated, while artifacts travel better than suspense.",
+      "description": "Paraphrased from a real Discord HTML export for privacy. It captures the room rule that private excitement is not public evidence until it becomes an inspectable artifact.",
+      "signals": {
+        "source": "discord_redacted",
+        "actionable": true,
+        "no_artifact_path": true,
+        "risk_type": "hidden_breakthrough",
+        "clarity": 0.72,
+        "credibility": 0.5,
+        "source_quality": 0.22,
+        "relevance": 0.7,
+        "community_support": 0.22,
+        "uncertainty": 0.46
+      }
+    },
+    {
+      "id": "repo_pr_review_request",
+      "kind": "community_signal",
+      "title": "Repo PR review with a concrete implementation concern",
+      "text": "A community member brings a repository pull request and asks for review of a specific implementation path. The review can inspect files, identify product direction, and suggest a focused test.",
+      "description": "Paraphrased from a real Discord HTML export for privacy. It represents a concrete repo-review request rather than general enthusiasm.",
+      "signals": {
+        "source": "discord_redacted",
+        "has_receipts": true,
+        "actionable": true,
+        "artifact_path": true,
+        "risk_type": "repo_review",
+        "clarity": 0.82,
+        "credibility": 0.82,
+        "source_quality": 0.86,
+        "relevance": 0.82,
+        "community_support": 0.2,
+        "uncertainty": 0.18
+      }
+    },
+    {
+      "id": "price_emotion_prompt",
+      "kind": "community_signal",
+      "title": "Price emotion prompt without an artifact",
+      "text": "A member asks why people are focused on price. The prompt names a real emotional pattern, but it carries no artifact, claim, repo, clip, or next action by itself.",
+      "description": "Paraphrased from a real Discord HTML export for privacy. It keeps the public lesson while removing raw room language.",
+      "signals": {
+        "source": "discord_redacted",
+        "no_artifact_path": true,
+        "price_chatter": true,
+        "risk_type": "price_chatter",
+        "clarity": 0.46,
+        "credibility": 0.22,
+        "source_quality": 0.0,
+        "relevance": 0.28,
+        "community_support": 0.18,
+        "uncertainty": 0.72
+      }
+    },
+    {
+      "id": "vague_breakthrough_tease",
+      "kind": "community_signal",
+      "title": "Breakthrough tease without public evidence",
+      "text": "A member announces a major breakthrough but withholds the actual claim, result, or supporting artifact from the room.",
+      "description": "Paraphrased from a real Discord HTML export for privacy. It represents suspense without evaluable evidence.",
+      "signals": {
+        "source": "discord_redacted",
+        "no_artifact_path": true,
+        "vague_hype": true,
+        "risk_type": "vague_hype",
+        "clarity": 0.22,
+        "credibility": 0.08,
+        "source_quality": 0.0,
+        "relevance": 0.16,
+        "community_support": 0.08,
+        "uncertainty": 0.92
+      }
+    }
+  ]
+}

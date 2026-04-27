@@ -246,7 +246,10 @@ def judge_candidates(
         candidate_id = str(candidate.get("id") or f"candidate_{index}")
         kind = str(candidate.get("kind") or _infer_kind(candidate))
 
-        if _is_local_video_candidate(candidate):
+        missing_video_path = _missing_local_video_path(candidate)
+        if missing_video_path is not None:
+            judgement = _judge_missing_video_candidate(candidate_id, kind, candidate, missing_video_path)
+        elif _is_local_video_candidate(candidate):
             judgement = _judge_video_candidate(
                 candidate_id,
                 kind,
@@ -257,7 +260,10 @@ def judge_candidates(
         else:
             judgement = _judge_generic_candidate(candidate_id, kind, candidate)
 
-        judgements.append(asdict(judgement))
+        judgement_payload = asdict(judgement)
+        if judgement_payload.get("title") is None:
+            judgement_payload.pop("title", None)
+        judgements.append(judgement_payload)
 
     judgements.sort(key=lambda item: item["score"], reverse=True)
     top_ids = [item["candidate_id"] for item in judgements[:2]]
@@ -288,9 +294,38 @@ def _is_local_video_candidate(candidate: dict[str, Any]) -> bool:
     if not isinstance(path_value, str) or not path_value.strip():
         return False
     candidate_path = Path(path_value)
-    if candidate_path.suffix.lower() in VIDEO_SUFFIXES and not candidate_path.exists():
-        raise ValueError(f"Video path does not exist: {path_value}")
     return candidate_path.exists() and candidate_path.suffix.lower() in VIDEO_SUFFIXES
+
+
+def _missing_local_video_path(candidate: dict[str, Any]) -> str | None:
+    path_value = candidate.get("path")
+    if not isinstance(path_value, str) or not path_value.strip():
+        return None
+    candidate_path = Path(path_value)
+    if candidate_path.suffix.lower() not in VIDEO_SUFFIXES:
+        return None
+    if candidate_path.exists():
+        return None
+    return path_value
+
+
+def _judge_missing_video_candidate(
+    candidate_id: str,
+    kind: str,
+    candidate: dict[str, Any],
+    missing_path: str,
+) -> Judgement:
+    score = 0.05
+    return Judgement(
+        candidate_id=candidate_id,
+        kind=kind,
+        score=score,
+        status=_status_for_score(score),
+        reasons=["The candidate points to a local video path that is no longer available."],
+        risks=[f"Missing local video file: {missing_path}."],
+        recommended_action="repair_input",
+        title=_candidate_title(candidate),
+    )
 
 
 def _judge_video_candidate(

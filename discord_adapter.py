@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import json
 import re
+from html import unescape
+from html.parser import HTMLParser
 from copy import deepcopy
 from pathlib import Path
 from typing import Any
@@ -19,7 +21,15 @@ URL_RE = re.compile(r"https?://\S+", re.IGNORECASE)
 
 
 def load_discord_export(path: str) -> list[dict[str, Any]]:
-    data = json.loads(Path(path).read_text(encoding="utf-8"))
+    export_path = Path(path)
+    raw = export_path.read_text(encoding="utf-8")
+    if export_path.suffix.lower() in {".html", ".htm"} or raw.lstrip().lower().startswith(("<!doctype html", "<html")):
+        messages = _load_discord_html_export(raw)
+        if not messages:
+            raise ValueError("Discord HTML export produced no messages")
+        return messages
+
+    data = json.loads(raw)
     if isinstance(data, list):
         messages = data
     elif isinstance(data, dict) and isinstance(data.get("messages"), list):
@@ -30,6 +40,99 @@ def load_discord_export(path: str) -> list[dict[str, Any]]:
     if not messages:
         raise ValueError("Discord export must contain at least one message")
     return messages
+
+
+class _DiscordHtmlParser(HTMLParser):
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self.messages: list[dict[str, Any]] = []
+        self._in_message = False
+        self._li_depth = 0
+        self._in_chat_name = False
+        self._in_time = False
+        self._paragraph_depth = 0
+        self._paragraph_parts: list[str] = []
+        self._current: dict[str, Any] = {}
+        self._content_parts: list[str] = []
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        attrs_dict = {name: value or "" for name, value in attrs}
+        classes = set(attrs_dict.get("class", "").split())
+
+        if tag == "li":
+            self._in_message = True
+            self._li_depth += 1
+            self._current = {}
+            self._content_parts = []
+            return
+
+        if not self._in_message:
+            return
+
+        if tag == "li":
+            self._li_depth += 1
+        elif tag == "span" and "chatName" in classes:
+            self._in_chat_name = True
+        elif tag == "span" and "time" in classes:
+            self._in_time = True
+        elif tag == "p" and "timeInfo" not in classes:
+            self._paragraph_depth += 1
+            self._paragraph_parts = []
+        elif tag == "br" and self._paragraph_depth:
+            self._paragraph_parts.append("\n")
+
+    def handle_endtag(self, tag: str) -> None:
+        if not self._in_message:
+            return
+
+        if tag == "span":
+            self._in_chat_name = False
+            self._in_time = False
+        elif tag == "p" and self._paragraph_depth:
+            text = _clean_text(unescape("".join(self._paragraph_parts)))
+            if text:
+                self._content_parts.append(text)
+            self._paragraph_depth -= 1
+            self._paragraph_parts = []
+        elif tag == "li":
+            self._li_depth -= 1
+            if self._li_depth <= 0:
+                self._finish_message()
+
+    def handle_data(self, data: str) -> None:
+        if not self._in_message:
+            return
+        if self._in_chat_name:
+            self._current["author_name"] = (self._current.get("author_name", "") + data).strip()
+        elif self._in_time:
+            self._current["timestamp"] = (self._current.get("timestamp", "") + data).strip()
+        elif self._paragraph_depth:
+            self._paragraph_parts.append(data)
+
+    def _finish_message(self) -> None:
+        content = _clean_text("\n".join(self._content_parts))
+        author_name = str(self._current.get("author_name") or "unknown member").strip()
+        timestamp = str(self._current.get("timestamp") or "").strip()
+        if content:
+            self.messages.append(
+                {
+                    "id": f"html_{len(self.messages) + 1}",
+                    "channel_name": "html-export",
+                    "content": content,
+                    "timestamp": timestamp,
+                    "author": {"display_name": author_name, "roles": []},
+                }
+            )
+        self._in_message = False
+        self._li_depth = 0
+        self._current = {}
+        self._content_parts = []
+
+
+def _load_discord_html_export(raw: str) -> list[dict[str, Any]]:
+    parser = _DiscordHtmlParser()
+    parser.feed(raw)
+    return parser.messages
 
 
 def discord_export_to_candidates(messages: list[dict[str, Any]], *, redact_public: bool = False) -> dict[str, Any]:
