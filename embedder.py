@@ -111,8 +111,10 @@ def audio_embedding(y: np.ndarray, sr: int) -> np.ndarray:
     embedding : (N_MELS + 4,) float32, L2-normalised
     """
     y = np.nan_to_num(np.asarray(y, dtype=np.float32), nan=0.0, posinf=0.0, neginf=0.0)
+    y = np.clip(y, -1.0, 1.0)
     S = stft(y, n_fft=N_FFT, hop_length=HOP)  # (n_frames, bins)
     S = np.nan_to_num(S, nan=0.0, posinf=0.0, neginf=0.0).astype(np.float64, copy=False)
+    S = np.maximum(S, 0.0)
 
     # Mel filterbank
     key = (N_MELS, N_FFT, sr)
@@ -121,7 +123,9 @@ def audio_embedding(y: np.ndarray, sr: int) -> np.ndarray:
     fb = _FILTERBANK_CACHE[key]
 
     # Mel spectrogram: (n_frames, N_MELS)
-    mel_spec = S @ fb.astype(np.float64, copy=False).T
+    with np.errstate(over="ignore", invalid="ignore"):
+        mel_spec = S @ fb.astype(np.float64, copy=False).T
+    mel_spec = np.nan_to_num(mel_spec, nan=0.0, posinf=0.0, neginf=0.0)
     mel_spec = np.maximum(mel_spec, 0.0)
     # Mean over time → (N_MELS,)
     mel_mean = mel_spec.mean(axis=0)

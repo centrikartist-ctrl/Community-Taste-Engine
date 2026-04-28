@@ -324,6 +324,17 @@ class TestEmbedder:
 
         assert np.all(np.isfinite(emb))
 
+    def test_audio_embedding_handles_overflow_under_strict_warnings(self):
+        from embedder import audio_embedding
+
+        y = np.full(SR, np.finfo(np.float32).max, dtype=np.float32)
+        with warnings.catch_warnings():
+            warnings.simplefilter("error", RuntimeWarning)
+            emb = audio_embedding(y, SR)
+
+        assert emb.dtype == np.float32
+        assert np.all(np.isfinite(emb))
+
 
 class TestLogger:
     def test_write_and_load_roundtrip(self):
