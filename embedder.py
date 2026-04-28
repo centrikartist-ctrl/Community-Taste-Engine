@@ -122,9 +122,16 @@ def audio_embedding(y: np.ndarray, sr: int) -> np.ndarray:
         _FILTERBANK_CACHE[key] = mel_filterbank(N_MELS, N_FFT, sr)
     fb = _FILTERBANK_CACHE[key]
 
-    # Mel spectrogram: (n_frames, N_MELS)
-    with np.errstate(over="ignore", invalid="ignore"):
-        mel_spec = S @ fb.astype(np.float64, copy=False).T
+    # Mel spectrogram: (n_frames, N_MELS). Keep this out of BLAS-backed
+    # matmul; some macOS NumPy stacks emit RuntimeWarning from matmul here
+    # even for finite inputs when warnings are promoted to errors.
+    mel_spec = np.empty((S.shape[0], fb.shape[0]), dtype=np.float64)
+    for idx, weights in enumerate(fb.astype(np.float64, copy=False)):
+        active = weights > 0.0
+        if not np.any(active):
+            mel_spec[:, idx] = 0.0
+            continue
+        mel_spec[:, idx] = np.sum(S[:, active] * weights[active], axis=1)
     mel_spec = np.nan_to_num(mel_spec, nan=0.0, posinf=0.0, neginf=0.0)
     mel_spec = np.maximum(mel_spec, 0.0)
     # Mean over time → (N_MELS,)
