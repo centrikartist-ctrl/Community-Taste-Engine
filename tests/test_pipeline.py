@@ -8,6 +8,7 @@ import sys
 import os
 import json
 import tempfile
+import warnings
 
 import numpy as np
 import pytest
@@ -298,6 +299,30 @@ class TestCritic:
         assert 0.0 <= score.speech_score <= 1.0
         assert 0.0 <= score.energy_score <= 1.0
         assert score.pairing_score == -1.0  # no video path
+
+
+class TestEmbedder:
+    def test_audio_embedding_is_quiet_under_strict_warnings(self):
+        from embedder import audio_embedding
+
+        y = _sine(duration=1.0)
+        with warnings.catch_warnings():
+            warnings.simplefilter("error", RuntimeWarning)
+            emb = audio_embedding(y, SR)
+
+        assert emb.dtype == np.float32
+        assert np.all(np.isfinite(emb))
+
+    def test_audio_embedding_sanitizes_nonfinite_input(self):
+        from embedder import audio_embedding
+
+        y = _sine(duration=1.0)
+        y[10] = np.nan
+        y[20] = np.inf
+
+        emb = audio_embedding(y, SR)
+
+        assert np.all(np.isfinite(emb))
 
 
 class TestLogger:

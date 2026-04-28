@@ -110,7 +110,9 @@ def audio_embedding(y: np.ndarray, sr: int) -> np.ndarray:
     -------
     embedding : (N_MELS + 4,) float32, L2-normalised
     """
+    y = np.nan_to_num(np.asarray(y, dtype=np.float32), nan=0.0, posinf=0.0, neginf=0.0)
     S = stft(y, n_fft=N_FFT, hop_length=HOP)  # (n_frames, bins)
+    S = np.nan_to_num(S, nan=0.0, posinf=0.0, neginf=0.0).astype(np.float64, copy=False)
 
     # Mel filterbank
     key = (N_MELS, N_FFT, sr)
@@ -119,7 +121,8 @@ def audio_embedding(y: np.ndarray, sr: int) -> np.ndarray:
     fb = _FILTERBANK_CACHE[key]
 
     # Mel spectrogram: (n_frames, N_MELS)
-    mel_spec = S @ fb.T
+    mel_spec = S @ fb.astype(np.float64, copy=False).T
+    mel_spec = np.maximum(mel_spec, 0.0)
     # Mean over time → (N_MELS,)
     mel_mean = mel_spec.mean(axis=0)
 
@@ -272,6 +275,7 @@ def pairing_score(
 
 
 def _l2_norm(v: np.ndarray) -> np.ndarray:
+    v = np.nan_to_num(np.asarray(v, dtype=np.float32), nan=0.0, posinf=0.0, neginf=0.0)
     norm = np.linalg.norm(v)
     if norm < 1e-8:
         return v

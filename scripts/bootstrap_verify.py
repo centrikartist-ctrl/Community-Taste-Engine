@@ -22,10 +22,7 @@ def _venv_python() -> Path:
 
 
 def _using_repo_venv() -> bool:
-    try:
-        return Path(sys.executable).resolve() == _venv_python().resolve()
-    except OSError:
-        return False
+    return Path(sys.prefix).resolve() == VENV_DIR.resolve()
 
 
 def _run(cmd: list[str], *, label: str, timeout: int = 300) -> None:
