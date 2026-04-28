@@ -14,6 +14,21 @@ That manual-URL media execution path belongs in tools like `capcut-cli`, not her
 
 ## Trust pass
 
+For a fresh clone, the one-command verification path is:
+
+```bash
+python scripts/bootstrap_verify.py
+```
+
+That command creates or reuses `.venv`, installs `requirements.txt`, checks for `ffmpeg`,
+then runs the public judgement command, checked-in evals, both trust passes, and the full pytest suite.
+
+If you are on a machine without `ffmpeg` and only want the judgement-layer checks:
+
+```bash
+python scripts/bootstrap_verify.py --skip-media
+```
+
 For the human-facing trust pass, run:
 
 ```bash

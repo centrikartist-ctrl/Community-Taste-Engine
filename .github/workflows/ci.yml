@@ -36,22 +36,6 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -r requirements.txt
 
-      - name: Verify judge import stays decoupled from media pipeline
+      - name: Run full verification stack
         run: |
-          python -c "import importlib, sys; sys.modules.pop('judge', None); sys.modules.pop('pipeline', None); importlib.import_module('judge'); assert 'pipeline' not in sys.modules, 'judge import should not load pipeline'"
-
-      - name: Run public judgement command
-        run: |
-          python judge.py examples/candidates.json --output out/ci-judgements.json --work-dir .judgement-ci --quiet
-
-      - name: Run checked-in evaluation suite
-        run: |
-          python scripts/evaluate_judgements.py
-
-      - name: Run judgement trust pass
-        run: |
-          python scripts/trust_judgement_pass.py --report-dir trust-ci
-
-      - name: Run test suite
-        run: |
-          python -m pytest -q
+          python scripts/bootstrap_verify.py --no-venv --no-install --report-dir trust-ci
